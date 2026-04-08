@@ -96,13 +96,15 @@ function App() {
   const [draft, setDraft] = useState<SwapDraft>(DEFAULT_DRAFT);
   const [quotes, setQuotes] = useState<Partial<Record<ProviderKey, QuoteResult | null>>>({});
   const [quotingProviders, setQuotingProviders] = useState<Set<ProviderKey>>(new Set());
+  const [selectedProvider, setSelectedProvider] = useState<ProviderKey | null>(null);
   const [error, setError] = useState('');
   const [isExecuting, setIsExecuting] = useState(false);
   const [txStatus, setTxStatus] = useState<TxStatus | null>(null);
   const [prices, setPrices] = useState<Record<string, number>>({});
 
-  // Best quote = lowest fee among available results
+  // Selected quote: user pick > auto-best (lowest fee)
   const bestQuote: QuoteResult | null = (() => {
+    if (selectedProvider && quotes[selectedProvider]) return quotes[selectedProvider]!;
     const available = (['lifi', 'relay'] as ProviderKey[])
       .map((p) => quotes[p])
       .filter((q): q is QuoteResult => q != null);
@@ -155,7 +157,7 @@ function App() {
   // ── Debounced auto-quote (fetches from all live providers in parallel) ──
   const fetchQuote = useCallback(async (currentDraft: SwapDraft) => {
     if (!isValidSwapInput(currentDraft)) {
-      setQuotes({});
+      setQuotes({}); setSelectedProvider(null);
       return;
     }
 
@@ -190,7 +192,7 @@ function App() {
   }, [walletAddress, walletBridge?.address]);
 
   useEffect(() => {
-    setQuotes({});
+    setQuotes({}); setSelectedProvider(null);
     if (!isValidSwapInput(draft)) return;
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -273,16 +275,27 @@ function App() {
       await walletBridge.switchChain(fromChain.chainId);
       const provider = await walletBridge.getEthereumProvider();
 
+      const txParams: Record<string, unknown> = {
+        from: walletBridge.address,
+        to: bestQuote.transactionRequest.to,
+        data: bestQuote.transactionRequest.data,
+        value: toHexQuantity(bestQuote.transactionRequest.value) ?? '0x0',
+      };
+
+      // EIP-1559 (Relay) vs legacy (LI.FI) gas params
+      if (bestQuote.transactionRequest.maxFeePerGas) {
+        txParams.maxFeePerGas = toHexQuantity(bestQuote.transactionRequest.maxFeePerGas);
+        txParams.maxPriorityFeePerGas = toHexQuantity(bestQuote.transactionRequest.maxPriorityFeePerGas);
+      } else if (bestQuote.transactionRequest.gasPrice) {
+        txParams.gasPrice = toHexQuantity(bestQuote.transactionRequest.gasPrice);
+      }
+      if (bestQuote.transactionRequest.gasLimit) {
+        txParams.gas = toHexQuantity(bestQuote.transactionRequest.gasLimit);
+      }
+
       const txHash = (await provider.request({
         method: 'eth_sendTransaction',
-        params: [{
-          from: walletBridge.address,
-          to: bestQuote.transactionRequest.to,
-          data: bestQuote.transactionRequest.data,
-          value: toHexQuantity(bestQuote.transactionRequest.value) ?? '0x0',
-          gas: toHexQuantity(bestQuote.transactionRequest.gasLimit),
-          gasPrice: toHexQuantity(bestQuote.transactionRequest.gasPrice)
-        }]
+        params: [txParams]
       })) as string;
 
       simulateTxProgress(txHash);
@@ -304,7 +317,7 @@ function App() {
       fromTokenSymbol: resolveToken(c.toChain, c.toTokenSymbol),
       toTokenSymbol: resolveToken(c.fromChain, c.fromTokenSymbol)
     }));
-    setQuotes({});
+    setQuotes({}); setSelectedProvider(null);
     setTxStatus(null);
   };
 
@@ -315,7 +328,7 @@ function App() {
         fromTokenSymbol: resolveToken(chain, undefined, c.fromTokenSymbol),
         toTokenSymbol: resolveToken(next, undefined, c.toTokenSymbol) };
     });
-    setQuotes({});
+    setQuotes({}); setSelectedProvider(null);
   };
 
   const updateToChain = (chain: ChainKey) => {
@@ -325,7 +338,7 @@ function App() {
         fromTokenSymbol: resolveToken(next, undefined, c.fromTokenSymbol),
         toTokenSymbol: resolveToken(chain, undefined, c.toTokenSymbol) };
     });
-    setQuotes({});
+    setQuotes({}); setSelectedProvider(null);
   };
 
   const stageIdx = (stage: TxStage | undefined) =>
@@ -452,7 +465,7 @@ function App() {
           >
             {/* Top bar */}
             <div className="hf-human-topbar">
-              <button className="hf-link-btn" onClick={() => { setView('landing'); setDraft(DEFAULT_DRAFT); setQuotes({}); setTxStatus(null); }}>
+              <button className="hf-link-btn" onClick={() => { setView('landing'); setDraft(DEFAULT_DRAFT); setQuotes({}); setSelectedProvider(null); setTxStatus(null); }}>
                 ← Back
               </button>
             </div>
@@ -480,7 +493,7 @@ function App() {
                         value={draft.amount}
                         onChange={(e) => {
                           setDraft((c) => ({ ...c, amount: e.target.value }));
-                          setQuotes({});
+                          setQuotes({}); setSelectedProvider(null);
                           setTxStatus(null);
                         }}
                         inputMode="decimal"
@@ -492,7 +505,7 @@ function App() {
                         tokens={fromTokenOptions}
                         chain={fromChain}
                         chains={CHAINS}
-                        onSelectToken={(s) => { setDraft((c) => ({ ...c, fromTokenSymbol: s })); setQuotes({}); }}
+                        onSelectToken={(s) => { setDraft((c) => ({ ...c, fromTokenSymbol: s })); setQuotes({}); setSelectedProvider(null); }}
                         onSelectChain={(k) => updateFromChain(k as ChainKey)}
                       />
                     </div>
@@ -527,7 +540,7 @@ function App() {
                         tokens={toTokenOptions}
                         chain={toChain}
                         chains={CHAINS}
-                        onSelectToken={(s) => { setDraft((c) => ({ ...c, toTokenSymbol: s })); setQuotes({}); }}
+                        onSelectToken={(s) => { setDraft((c) => ({ ...c, toTokenSymbol: s })); setQuotes({}); setSelectedProvider(null); }}
                         onSelectChain={(k) => updateToChain(k as ChainKey)}
                       />
                     </div>
@@ -543,10 +556,15 @@ function App() {
                       ]).map(({ key, label, logo }) => {
                         const pQuote = quotes[key];
                         const pQuoting = quotingProviders.has(key);
-                        const isBest = bestQuote != null && pQuote != null && pQuote.id === bestQuote.id;
+                        const isSelected = bestQuote != null && pQuote != null && pQuote.id === bestQuote.id;
+                        const canSelect = pQuote != null && !pQuoting;
                         return (
-                          <div key={key} className={`hf-provider-row ${isBest ? 'hf-provider-row-active' : ''}`}>
-                            <div className={`hf-provider-check ${isBest ? '' : 'hf-provider-check-upcoming'}`}>
+                          <div
+                            key={key}
+                            className={`hf-provider-row ${isSelected ? 'hf-provider-row-active' : ''} ${canSelect ? 'hf-provider-row-clickable' : ''}`}
+                            onClick={() => { if (canSelect) setSelectedProvider(key); }}
+                          >
+                            <div className={`hf-provider-check ${isSelected ? '' : 'hf-provider-check-upcoming'}`}>
                               <Check size={10} strokeWidth={3} />
                             </div>
                             <div className="hf-provider-info">
@@ -562,7 +580,7 @@ function App() {
                               ) : pQuote ? (
                                 <span className="hf-provider-meta">
                                   {formatUsd(pQuote.feeUsd)} fee • ~{pQuote.etaSeconds}s
-                                  {isBest && <span className="hf-best-badge">best</span>}
+                                  {isSelected && <span className="hf-best-badge">selected</span>}
                                 </span>
                               ) : (
                                 <span className="hf-provider-meta">

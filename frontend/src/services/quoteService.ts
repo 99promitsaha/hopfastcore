@@ -27,6 +27,8 @@ export interface QuoteResult {
     value?: string;
     gasLimit?: string;
     gasPrice?: string;
+    maxFeePerGas?: string;
+    maxPriorityFeePerGas?: string;
   };
   warning?: string;
   raw?: unknown;
@@ -158,8 +160,11 @@ export async function getSwapQuote(request: QuoteRequest, provider: 'lifi' | 're
             to?: string;
             data?: string;
             value?: string;
+            gas?: string;
             gasLimit?: string;
             gasPrice?: string;
+            maxFeePerGas?: string;
+            maxPriorityFeePerGas?: string;
           };
         }>;
       }>;
@@ -179,7 +184,16 @@ export async function getSwapQuote(request: QuoteRequest, provider: 'lifi' | 're
       : undefined;
     const detailsWarning = data.warnings?.length ? data.warnings.join(' | ') : undefined;
     const combinedWarning = [fallbackWarning, detailsWarning].filter(Boolean).join(' ');
-    const transactionRequest = quote.userSteps?.find((step) => step.type === 'TRANSACTION')?.transaction;
+    const rawTx = quote.userSteps?.find((step) => step.type === 'TRANSACTION')?.transaction;
+    const transactionRequest = rawTx ? {
+      to: rawTx.to,
+      data: rawTx.data,
+      value: rawTx.value,
+      gasLimit: rawTx.gasLimit ?? rawTx.gas,
+      gasPrice: rawTx.gasPrice,
+      maxFeePerGas: rawTx.maxFeePerGas,
+      maxPriorityFeePerGas: rawTx.maxPriorityFeePerGas,
+    } : undefined;
 
     return {
       id: quote.id,

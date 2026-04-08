@@ -8,7 +8,8 @@
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('details'\\), indent=2\\)\\); print\\('fees:', json.dumps\\(d.get\\('fees'\\), indent=2\\)\\)\")",
       "Bash(curl -s \"https://li.quest/v1/quote?fromChain=8453&toChain=56&fromToken=0x0000000000000000000000000000000000000000&toToken=0x0000000000000000000000000000000000000000&fromAmount=200000000000000000&fromAddress=0x1111111111111111111111111111111111111111&toAddress=0x1111111111111111111111111111111111111111&slippage=0.005\")",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); e=d.get\\('estimate',{}\\); print\\('toAmount:', e.get\\('toAmount'\\)\\); print\\('toAmountMin:', e.get\\('toAmountMin'\\)\\); print\\('duration:', e.get\\('executionDuration'\\)\\); print\\('fees:', sum\\(float\\(x.get\\('amountUSD',0\\)\\) for x in e.get\\('feeCosts',[]\\)+e.get\\('gasCosts',[]\\)\\)\\)\")",
-      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); co=d.get\\('details',{}\\).get\\('currencyOut',{}\\); print\\('amount:', co.get\\('amount'\\)\\); print\\('min:', co.get\\('minimumAmount'\\)\\); print\\('error:', d.get\\('message','none'\\)\\)\")"
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); co=d.get\\('details',{}\\).get\\('currencyOut',{}\\); print\\('amount:', co.get\\('amount'\\)\\); print\\('min:', co.get\\('minimumAmount'\\)\\); print\\('error:', d.get\\('message','none'\\)\\)\")",
+      "WebFetch(domain:docs.relay.link)"
     ]
   }
 }
