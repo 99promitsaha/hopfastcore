@@ -1192,7 +1192,7 @@ function App() {
           <a href="#">Support</a>
           <a href="#">Privacy</a>
         </div>
-        <p>© 2025 HopFast</p>
+        <p>© 2026 HopFast</p>
       </footer>
     </div>
   );
