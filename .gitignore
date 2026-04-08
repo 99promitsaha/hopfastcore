@@ -1,0 +1,8 @@
+frontend/node_modules
+backend/node_modules
+frontend/dist
+backend/dist
+**/.env
+.DS_Store
+.vite
+*.tsbuildinfo
