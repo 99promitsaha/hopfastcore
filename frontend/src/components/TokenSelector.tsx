@@ -10,6 +10,8 @@ interface TokenSelectorProps {
   chains: ChainOption[];
   onSelectToken: (symbol: string) => void;
   onSelectChain: (chainKey: string) => void;
+  /** Map of lowercase token address → formatted balance string */
+  balances?: Record<string, string>;
 }
 
 export function TokenSelector({
@@ -19,10 +21,19 @@ export function TokenSelector({
   chain,
   chains,
   onSelectToken,
-  onSelectChain
+  onSelectChain,
+  balances
 }: TokenSelectorProps) {
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [showChainModal, setShowChainModal] = useState(false);
+  const [tokenSearch, setTokenSearch] = useState('');
+  const normalizedSearch = tokenSearch.trim().toLowerCase();
+  const filteredTokens = normalizedSearch
+    ? tokens.filter((token) =>
+      token.symbol.toLowerCase().includes(normalizedSearch)
+      || token.name.toLowerCase().includes(normalizedSearch)
+    )
+    : tokens;
 
   return (
     <>
@@ -76,8 +87,16 @@ export function TokenSelector({
                 <X size={18} />
               </button>
             </div>
+            <div className="hf-dropdown-search-wrap">
+              <input
+                className="hf-dropdown-search"
+                placeholder="Search token"
+                value={tokenSearch}
+                onChange={(e) => setTokenSearch(e.target.value)}
+              />
+            </div>
             <div className="hf-dropdown-list">
-              {tokens.map((token) => (
+              {filteredTokens.map((token) => (
                 <button
                   key={token.symbol}
                   className={`hf-dropdown-item ${
@@ -101,8 +120,16 @@ export function TokenSelector({
                     <strong>{token.symbol}</strong>
                     <span>{token.name}</span>
                   </div>
+                  {balances?.[token.address.toLowerCase()] != null && (
+                    <span className="hf-dropdown-item-balance">
+                      {balances[token.address.toLowerCase()]}
+                    </span>
+                  )}
                 </button>
               ))}
+              {filteredTokens.length === 0 && (
+                <div className="hf-dropdown-empty">No token matches that search.</div>
+              )}
             </div>
           </div>
         </div>

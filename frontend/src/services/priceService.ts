@@ -16,7 +16,8 @@ const SYMBOL_TO_COINGECKO_ID: Record<string, string> = {
   BUSD: 'binance-usd',
   POL: 'matic-network',
   ARB: 'arbitrum',
-  OP: 'optimism'
+  OP: 'optimism',
+  cbBTC: 'coinbase-wrapped-btc'
 };
 
 interface PriceCache {

@@ -8,7 +8,8 @@
     "dev:api": "npm --prefix ../backend run dev",
     "build": "tsc -b && vite build",
     "build:api": "npm --prefix ../backend run build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sync:top-assets": "node scripts/generate-top-assets.mjs"
   },
   "dependencies": {
     "@fontsource/poppins": "^5.2.7",

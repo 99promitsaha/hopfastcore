@@ -100,10 +100,6 @@ function resolveSlippage(payload: UnifiedQuotePayload): number {
   return fromPayload ?? env.LIFI_SLIPPAGE;
 }
 
-export function isLiFiReady(): boolean {
-  return Boolean(env.LIFI_API_BASE_URL);
-}
-
 export async function requestLiFiQuote(payload: UnifiedQuotePayload): Promise<{
   provider: 'lifi';
   quotes: Array<{

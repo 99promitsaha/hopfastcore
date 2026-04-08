@@ -1,4 +1,4 @@
-import { CHAIN_BY_KEY, type ChainKey, getToken } from '../lib/chains';
+import { type ChainKey, getToken } from '../lib/chains';
 import { formatUnits, parseUnits } from '../lib/amount';
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -14,7 +14,7 @@ export interface QuoteRequest {
 
 export interface QuoteResult {
   id: string;
-  provider: 'lifi-api' | 'relay-api' | 'mock';
+  provider: 'lifi-api' | 'relay-api' | 'debridge-api' | 'mock';
   route: string;
   feeUsd: number;
   feePercent: number;
@@ -107,7 +107,10 @@ async function fetchQuoteFromBackend(payload: Record<string, unknown>, provider:
   return response.json();
 }
 
-export async function getSwapQuote(request: QuoteRequest, provider: 'lifi' | 'relay' = 'lifi'): Promise<QuoteResult> {
+export async function getSwapQuote(
+  request: QuoteRequest,
+  provider: 'lifi' | 'relay' | 'debridge' = 'lifi'
+): Promise<QuoteResult> {
   if (request.fromChain === request.toChain) {
     throw new Error('Source and destination chains must be different.');
   }
@@ -141,13 +144,13 @@ export async function getSwapQuote(request: QuoteRequest, provider: 'lifi' | 're
 
   try {
     const data = (await fetchQuoteFromBackend(payload, provider)) as {
-      provider?: 'lifi' | 'relay' | 'squid';
+      provider?: 'lifi' | 'relay' | 'debridge' | 'squid';
       fallbackUsed?: boolean;
       fallbackFrom?: string;
       warnings?: string[];
       quotes?: Array<{
         id: string;
-        provider?: 'lifi' | 'relay' | 'squid';
+        provider?: 'lifi' | 'relay' | 'debridge' | 'squid';
         routeSteps?: Array<{ type?: string }>;
         feeUsd?: string;
         feePercent?: string;
@@ -197,7 +200,7 @@ export async function getSwapQuote(request: QuoteRequest, provider: 'lifi' | 're
 
     return {
       id: quote.id,
-      provider: provider === 'relay' ? 'relay-api' : 'lifi-api',
+      provider: provider === 'relay' ? 'relay-api' : provider === 'debridge' ? 'debridge-api' : 'lifi-api',
       route,
       feeUsd: numberFromUnknown(quote.feeUsd, 0),
       feePercent: numberFromUnknown(quote.feePercent, 0),
@@ -213,8 +216,3 @@ export async function getSwapQuote(request: QuoteRequest, provider: 'lifi' | 're
   }
 }
 
-export function getChainFacts() {
-  return Object.fromEntries(
-    Object.entries(CHAIN_BY_KEY).map(([key, chain]) => [key, { chainId: chain.chainId }])
-  );
-}

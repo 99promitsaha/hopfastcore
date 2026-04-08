@@ -575,6 +575,29 @@ input, select, textarea, button { font-family: inherit; }
   box-shadow: var(--hf-shadow-elevated);
 }
 
+.hf-history-trigger {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.8rem;
+  border: 1px solid var(--hf-border);
+  background: var(--hf-bg-elevated);
+  color: var(--hf-text-primary);
+  border-radius: 999px;
+  width: 1.9rem;
+  height: 1.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.86rem;
+  cursor: pointer;
+  transition: all var(--hf-transition);
+}
+
+.hf-history-trigger:hover {
+  border-color: var(--hf-border-active);
+  transform: translateY(-1px);
+}
+
 .hf-swap-title {
   text-align: center;
   font-family: var(--hf-font-headline);
@@ -639,6 +662,53 @@ input, select, textarea, button { font-family: inherit; }
   display: flex;
   align-items: center;
   gap: 0.6rem;
+}
+
+.hf-balance-row {
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.hf-balance-hint {
+  font-family: var(--hf-mono);
+  font-size: 0.6rem;
+  color: var(--hf-text-muted);
+}
+
+.hf-balance-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.hf-pct-btn {
+  border: 1px solid var(--hf-border);
+  border-radius: 6px;
+  background: var(--hf-bg-elevated);
+  color: var(--hf-text-secondary);
+  font-family: var(--hf-font-headline);
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.4rem;
+  cursor: pointer;
+  transition: all var(--hf-transition);
+}
+
+.hf-pct-btn:hover {
+  background: var(--hf-primary);
+  color: var(--hf-primary-text);
+  border-color: var(--hf-primary);
+}
+
+.hf-balance-alert {
+  font-size: 0.52rem;
+  color: #9a1d2e;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .hf-amount-input {
@@ -765,6 +835,28 @@ input, select, textarea, button { font-family: inherit; }
   font-weight: 700;
 }
 
+.hf-dropdown-search-wrap {
+  padding: 0.55rem 0.75rem 0.35rem;
+  border-bottom: 1px solid var(--hf-border);
+}
+
+.hf-dropdown-search {
+  width: 100%;
+  border: 1px solid var(--hf-border);
+  border-radius: 10px;
+  height: 2rem;
+  padding: 0 0.65rem;
+  font-size: 0.78rem;
+  font-family: var(--hf-font-body);
+  background: var(--hf-bg-input);
+  color: var(--hf-text-primary);
+}
+
+.hf-dropdown-search:focus {
+  outline: none;
+  border-color: var(--hf-border-active);
+}
+
 .hf-dropdown-close {
   border: 0;
   background: transparent;
@@ -828,6 +920,13 @@ input, select, textarea, button { font-family: inherit; }
 .hf-dropdown-item-info span {
   font-size: 0.7rem;
   color: var(--hf-text-secondary);
+}
+
+.hf-dropdown-empty {
+  color: var(--hf-text-muted);
+  font-size: 0.72rem;
+  text-align: center;
+  padding: 0.7rem;
 }
 
 /* ─── Switch/Swap Direction Button ───────────────────── */
@@ -980,6 +1079,103 @@ input, select, textarea, button { font-family: inherit; }
   letter-spacing: 0.06em;
   color: var(--hf-text-muted);
   font-style: italic;
+}
+
+/* ─── History ────────────────────────────────────────── */
+.hf-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+}
+
+.hf-history-title {
+  font-size: 0.65rem;
+  font-family: var(--hf-font-headline);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--hf-text-secondary);
+}
+
+.hf-history-address {
+  font-size: 0.6rem;
+  font-family: var(--hf-mono);
+  color: var(--hf-text-muted);
+}
+
+.hf-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 210px;
+  overflow-y: auto;
+  padding-right: 0.1rem;
+}
+
+.hf-history-item {
+  border: 1px solid var(--hf-border);
+  background: var(--hf-bg-card);
+  border-radius: var(--hf-radius-xs);
+  padding: 0.5rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.24rem;
+}
+
+.hf-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.hf-history-provider,
+.hf-history-status,
+.hf-history-route,
+.hf-history-chain,
+.hf-history-time,
+.hf-history-link {
+  font-size: 0.6rem;
+}
+
+.hf-history-provider {
+  font-weight: 700;
+  color: var(--hf-text-primary);
+}
+
+.hf-history-status {
+  text-transform: capitalize;
+  color: var(--hf-text-secondary);
+}
+
+.hf-history-route {
+  font-family: var(--hf-mono);
+  color: var(--hf-text-primary);
+}
+
+.hf-history-chain,
+.hf-history-time {
+  color: var(--hf-text-muted);
+}
+
+.hf-history-link {
+  text-decoration: none;
+  color: var(--hf-primary-dark);
+  font-weight: 700;
+}
+
+.hf-history-link:hover {
+  text-decoration: underline;
+}
+
+.hf-history-link-muted {
+  color: var(--hf-text-muted);
+}
+
+.hf-history-empty {
+  font-size: 0.66rem;
+  color: var(--hf-text-muted);
 }
 
 /* ─── Inline Quote Details ───────────────────────────── */
@@ -1383,4 +1579,37 @@ input, select, textarea, button { font-family: inherit; }
   .hf-nav {
     display: none;
   }
+}
+
+/* ─── History Modal ──────────────────────────────────── */
+.hf-history-modal {
+  width: min(480px, calc(100vw - 2rem));
+  max-height: 80vh;
+}
+
+.hf-history-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.65rem;
+}
+
+.hf-history-modal-body .hf-history-list {
+  max-height: none; /* unconstrained in modal — outer scroll handles it */
+}
+
+.hf-history-modal-body .hf-history-empty {
+  padding: 1.5rem 0.5rem;
+  text-align: center;
+  font-size: 0.72rem;
+}
+
+/* ─── Token dropdown balance display ─────────────────── */
+.hf-dropdown-item-balance {
+  margin-left: auto;
+  font-size: 0.68rem;
+  font-family: var(--hf-mono);
+  color: var(--hf-text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-left: 0.5rem;
 }

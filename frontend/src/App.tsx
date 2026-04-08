@@ -2,17 +2,20 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowUpDown, Bot, Check, CheckCircle2, ExternalLink,
-  Loader2, Radio, UserRound, Zap
+  Loader2, Radio, UserRound, X, Zap
 } from 'lucide-react';
 import {
   DemoWalletConnector, PrivyWalletConnector, usePrivyAuth,
   type PrivyWalletBridge
 } from './components/WalletConnector';
 import { TokenSelector } from './components/TokenSelector';
-import { formatUsd } from './lib/amount';
-import { CHAINS, CHAIN_BY_KEY, getDefaultToken, getToken, type ChainKey } from './lib/chains';
+import { formatUnits, formatUsd, parseUnits } from './lib/amount';
+import { CHAINS, CHAIN_BY_KEY, getDefaultToken, getToken, NATIVE_TOKEN_ADDRESS, type ChainKey } from './lib/chains';
 import { getSwapQuote, type QuoteResult } from './services/quoteService';
 import { getTokenPrices, computeUsdValue } from './services/priceService';
+import { fetchSingleTokenBalance, fetchTokenBalancesForChain } from './services/balanceService';
+import { fetchUserTransactionHistory, type UserTransactionRecord } from './services/transactionHistoryService';
+import { pollTransactionStatus, stageToProgress, type TxStage as StatusTxStage, type TxStatusResult } from './services/transactionStatusService';
 
 const HAS_PRIVY = Boolean(import.meta.env.VITE_PRIVY_APP_ID);
 
@@ -43,12 +46,15 @@ const BLOCK_EXPLORER: Record<ChainKey, string> = {
   polygon: 'https://polygonscan.com/tx/'
 };
 
-type TxStage = 'submitted' | 'confirming' | 'bridging' | 'completed' | 'failed';
+type TxStage = StatusTxStage;
 
 interface TxStatus {
   hash: string;
   stage: TxStage;
   progress: number;
+  substatus?: string;
+  receivingTxHash?: string;
+  explorerLink?: string;
 }
 
 const TX_STAGES: { key: TxStage; label: string }[] = [
@@ -58,7 +64,18 @@ const TX_STAGES: { key: TxStage; label: string }[] = [
   { key: 'completed', label: 'Complete' }
 ];
 
-type ProviderKey = 'lifi' | 'relay';
+type ProviderKey = 'lifi' | 'relay' | 'debridge';
+const LIVE_PROVIDERS: ProviderKey[] = ['lifi', 'relay', 'debridge'];
+const HISTORY_LIMIT = 50;
+
+function makeBalanceKey(chain: ChainKey, tokenAddress: string): string {
+  return `${chain}:${tokenAddress.toLowerCase()}`;
+}
+
+function toProviderLabel(provider?: string): string {
+  if (!provider) return 'Unknown';
+  return provider.replace(/-api$/i, '').replace(/^./, (char) => char.toUpperCase());
+}
 
 function getAnotherChain(chain: ChainKey): ChainKey {
   const allKeys = CHAINS.map((c) => c.key);
@@ -88,6 +105,76 @@ function isValidSwapInput(draft: SwapDraft): boolean {
   return Number.isFinite(amount) && amount > 0;
 }
 
+// ERC-20 allowance selector: allowance(owner, spender)
+const ALLOWANCE_SELECTOR = '0xdd62ed3e';
+// ERC-20 approve selector: approve(spender, amount)
+const APPROVE_SELECTOR = '0x095ea7b3';
+const MAX_UINT256 = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
+
+function encodeAllowanceCall(owner: string, spender: string): string {
+  const o = owner.toLowerCase().replace(/^0x/, '').padStart(64, '0');
+  const s = spender.toLowerCase().replace(/^0x/, '').padStart(64, '0');
+  return `${ALLOWANCE_SELECTOR}${o}${s}`;
+}
+
+function encodeApproveCall(spender: string): string {
+  const s = spender.toLowerCase().replace(/^0x/, '').padStart(64, '0');
+  const amount = MAX_UINT256.replace(/^0x/, '').padStart(64, '0');
+  return `${APPROVE_SELECTOR}${s}${amount}`;
+}
+
+function isNativeToken(address: string): boolean {
+  const lower = address.toLowerCase();
+  return lower === NATIVE_TOKEN_ADDRESS.toLowerCase()
+    || lower === '0x0000000000000000000000000000000000000000';
+}
+
+async function ensureTokenApproval(
+  provider: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> },
+  tokenAddress: string,
+  ownerAddress: string,
+  spenderAddress: string,
+  requiredAmount: bigint
+): Promise<void> {
+  // Native tokens don't need approval
+  if (isNativeToken(tokenAddress)) return;
+
+  // Check current allowance
+  const data = encodeAllowanceCall(ownerAddress, spenderAddress);
+  const allowanceHex = (await provider.request({
+    method: 'eth_call',
+    params: [{ to: tokenAddress, data }, 'latest']
+  })) as string;
+
+  const currentAllowance = BigInt(allowanceHex || '0x0');
+  if (currentAllowance >= requiredAmount) return;
+
+  // Send approval transaction
+  const approveData = encodeApproveCall(spenderAddress);
+  await provider.request({
+    method: 'eth_sendTransaction',
+    params: [{
+      from: ownerAddress,
+      to: tokenAddress,
+      data: approveData,
+      value: '0x0'
+    }]
+  });
+
+  // Wait for approval to be mined by polling allowance
+  const maxAttempts = 30;
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    const updatedHex = (await provider.request({
+      method: 'eth_call',
+      params: [{ to: tokenAddress, data }, 'latest']
+    })) as string;
+    if (BigInt(updatedHex || '0x0') >= requiredAmount) return;
+  }
+
+  throw new Error('Token approval was not confirmed in time. Please try again.');
+}
+
 function App() {
   const [view, setView] = useState<EntryView>('landing');
   const pendingLogin = useRef(false);
@@ -101,11 +188,19 @@ function App() {
   const [isExecuting, setIsExecuting] = useState(false);
   const [txStatus, setTxStatus] = useState<TxStatus | null>(null);
   const [prices, setPrices] = useState<Record<string, number>>({});
+  const [tokenBalances, setTokenBalances] = useState<Record<string, bigint>>({});
+  const [isRefreshingBalances, setIsRefreshingBalances] = useState(false);
+  const [balanceRefreshTick, setBalanceRefreshTick] = useState(0);
+  const [balanceError, setBalanceError] = useState('');
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState('');
+  const [historyRecords, setHistoryRecords] = useState<UserTransactionRecord[]>([]);
 
   // Selected quote: user pick > auto-best (lowest fee)
   const bestQuote: QuoteResult | null = (() => {
     if (selectedProvider && quotes[selectedProvider]) return quotes[selectedProvider]!;
-    const available = (['lifi', 'relay'] as ProviderKey[])
+    const available = LIVE_PROVIDERS
       .map((p) => quotes[p])
       .filter((q): q is QuoteResult => q != null);
     if (!available.length) return null;
@@ -123,9 +218,60 @@ function App() {
   const fromChain = CHAIN_BY_KEY[draft.fromChain];
   const toChain = CHAIN_BY_KEY[draft.toChain];
   const fromTokenOptions = useMemo(() => fromChain.tokens, [fromChain]);
+  const sortedFromTokenOptions = useMemo(() => {
+    const indexedTokens = fromTokenOptions.map((token, index) => ({
+      token,
+      index,
+      balance: tokenBalances[makeBalanceKey(draft.fromChain, token.address)] ?? null
+    }));
+
+    indexedTokens.sort((left, right) => {
+      const leftHasNonZero = left.balance != null && left.balance > 0n;
+      const rightHasNonZero = right.balance != null && right.balance > 0n;
+      if (leftHasNonZero !== rightHasNonZero) return leftHasNonZero ? -1 : 1;
+      return left.index - right.index;
+    });
+
+    return indexedTokens.map((entry) => entry.token);
+  }, [draft.fromChain, fromTokenOptions, tokenBalances]);
   const toTokenOptions = useMemo(() => toChain.tokens, [toChain]);
   const selectedFromToken = fromTokenOptions.find((t) => t.symbol === draft.fromTokenSymbol) ?? fromTokenOptions[0];
   const selectedToToken = toTokenOptions.find((t) => t.symbol === draft.toTokenSymbol) ?? toTokenOptions[0];
+  const activeWalletAddress = walletBridge?.address ?? walletAddress;
+  const hasConnectedWallet = Boolean(activeWalletAddress);
+  const selectedBalanceKey = makeBalanceKey(draft.fromChain, selectedFromToken.address);
+  const selectedSourceBalanceRaw = tokenBalances[selectedBalanceKey];
+  const selectedSourceBalance = selectedSourceBalanceRaw != null
+    ? formatUnits(selectedSourceBalanceRaw, selectedFromToken.decimals, 6)
+    : null;
+  const requestedAmountRaw = useMemo(() => {
+    const amount = draft.amount.trim();
+    if (!amount) return null;
+    try {
+      return parseUnits(amount, selectedFromToken.decimals);
+    } catch {
+      return null;
+    }
+  }, [draft.amount, selectedFromToken.decimals]);
+  const isAmountInsufficient =
+    hasConnectedWallet
+    && requestedAmountRaw != null
+    && selectedSourceBalanceRaw != null
+    && requestedAmountRaw > selectedSourceBalanceRaw;
+  const isBalanceUnknown = hasConnectedWallet && selectedSourceBalanceRaw == null;
+  const shouldGateForBalanceCheck = hasConnectedWallet && !balanceError && (isRefreshingBalances || isBalanceUnknown);
+
+  // Build formatted balance map for source chain token selector
+  const formattedSourceBalances = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const token of fromTokenOptions) {
+      const raw = tokenBalances[makeBalanceKey(draft.fromChain, token.address)];
+      if (raw != null) {
+        map[token.address.toLowerCase()] = formatUnits(raw, token.decimals, 4);
+      }
+    }
+    return map;
+  }, [draft.fromChain, fromTokenOptions, tokenBalances]);
 
   const fromUsd = computeUsdValue(prices, draft.fromTokenSymbol, draft.amount);
   const toUsd = bestQuote?.destinationAmount
@@ -144,6 +290,86 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch balances for all source-chain assets before quoting
+  useEffect(() => {
+    if (!activeWalletAddress) {
+      setBalanceError('');
+      return;
+    }
+
+    let cancelled = false;
+
+    const refreshBalances = async () => {
+      try {
+        setIsRefreshingBalances(true);
+        setBalanceError('');
+
+        const balances = await fetchTokenBalancesForChain(
+          draft.fromChain,
+          activeWalletAddress,
+          CHAIN_BY_KEY[draft.fromChain].tokens
+        );
+
+        if (cancelled) return;
+
+        setTokenBalances((prev) => {
+          const next = { ...prev };
+          for (const [tokenAddress, rawBalance] of Object.entries(balances)) {
+            next[makeBalanceKey(draft.fromChain, tokenAddress)] = rawBalance;
+          }
+          return next;
+        });
+      } catch (caughtError) {
+        if (cancelled) return;
+        setBalanceError(caughtError instanceof Error ? caughtError.message : 'Failed to fetch wallet balances.');
+      } finally {
+        if (!cancelled) {
+          setIsRefreshingBalances(false);
+        }
+      }
+    };
+
+    refreshBalances().catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeWalletAddress, draft.fromChain, balanceRefreshTick]);
+
+  // Ensure selected token balance is fetched with RPC fallback/retry.
+  useEffect(() => {
+    if (!activeWalletAddress) return;
+
+    let cancelled = false;
+
+    const refreshSelectedTokenBalance = async () => {
+      const balance = await fetchSingleTokenBalance(
+        draft.fromChain,
+        activeWalletAddress,
+        selectedFromToken
+      );
+
+      if (cancelled) return;
+
+      if (balance == null) {
+        setBalanceError(`Could not load ${selectedFromToken.symbol} balance right now.`);
+        return;
+      }
+
+      setTokenBalances((prev) => ({
+        ...prev,
+        [makeBalanceKey(draft.fromChain, selectedFromToken.address)]: balance
+      }));
+      setBalanceError('');
+    };
+
+    refreshSelectedTokenBalance().catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeWalletAddress, draft.fromChain, selectedFromToken.address, selectedFromToken.symbol]);
+
   // ── Gate navigation: require Privy login before entering Human view ──
   const handleHumanClick = () => {
     if (HAS_PRIVY && !privyAuth.authenticated) {
@@ -154,25 +380,41 @@ function App() {
     setView('human');
   };
 
+  const hasInsufficientAmountForDraft = useCallback((currentDraft: SwapDraft): boolean => {
+    if (!activeWalletAddress) return false;
+
+    const sourceToken = getToken(currentDraft.fromChain, currentDraft.fromTokenSymbol);
+    if (!sourceToken) return false;
+
+    const knownBalance = tokenBalances[makeBalanceKey(currentDraft.fromChain, sourceToken.address)];
+    if (knownBalance == null) return false;
+
+    try {
+      return parseUnits(currentDraft.amount, sourceToken.decimals) > knownBalance;
+    } catch {
+      return false;
+    }
+  }, [activeWalletAddress, tokenBalances]);
+
   // ── Debounced auto-quote (fetches from all live providers in parallel) ──
   const fetchQuote = useCallback(async (currentDraft: SwapDraft) => {
-    if (!isValidSwapInput(currentDraft)) {
+    if (!isValidSwapInput(currentDraft) || shouldGateForBalanceCheck || hasInsufficientAmountForDraft(currentDraft)) {
       setQuotes({}); setSelectedProvider(null);
       return;
     }
 
     // Abort any in-flight requests
-    (['lifi', 'relay'] as ProviderKey[]).forEach((p) => {
+    LIVE_PROVIDERS.forEach((p) => {
       quoteAbortRefs.current[p]?.abort();
       quoteAbortRefs.current[p] = new AbortController();
     });
 
-    setQuotingProviders(new Set(['lifi', 'relay']));
+    setQuotingProviders(new Set(LIVE_PROVIDERS));
     setError('');
 
-    const walletAddr = walletBridge?.address ?? walletAddress;
+    const walletAddr = activeWalletAddress;
 
-    (['lifi', 'relay'] as ProviderKey[]).forEach(async (provider) => {
+    LIVE_PROVIDERS.forEach(async (provider) => {
       try {
         const result = await getSwapQuote(
           { ...currentDraft, walletAddress: walletAddr },
@@ -189,7 +431,7 @@ function App() {
         });
       }
     });
-  }, [walletAddress, walletBridge?.address]);
+  }, [activeWalletAddress, hasInsufficientAmountForDraft, shouldGateForBalanceCheck]);
 
   useEffect(() => {
     setQuotes({}); setSelectedProvider(null);
@@ -214,6 +456,45 @@ function App() {
     return () => clearInterval(interval);
   }, [view, draft, isExecuting, fetchQuote]);
 
+  // Load user's transaction history when panel is opened
+  useEffect(() => {
+    if (!historyOpen) return;
+
+    if (!activeWalletAddress) {
+      setHistoryRecords([]);
+      setHistoryError('Connect wallet to view transaction history.');
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadHistory = async () => {
+      try {
+        setHistoryLoading(true);
+        setHistoryError('');
+        const records = await fetchUserTransactionHistory(activeWalletAddress, HISTORY_LIMIT);
+        if (!cancelled) {
+          setHistoryRecords(records);
+        }
+      } catch (caughtError) {
+        if (!cancelled) {
+          setHistoryError(caughtError instanceof Error ? caughtError.message : 'Failed to load transaction history.');
+          setHistoryRecords([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setHistoryLoading(false);
+        }
+      }
+    };
+
+    loadHistory().catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [historyOpen, activeWalletAddress, txStatus?.hash]);
+
   // ── If user actively logs in via Privy (not session restore), enter human view ──
   useEffect(() => {
     if (HAS_PRIVY && privyAuth.authenticated && pendingLogin.current) {
@@ -222,12 +503,37 @@ function App() {
     }
   }, [privyAuth.authenticated]);
 
-  // ── Transaction progress ────────────────────────────
-  const simulateTxProgress = (hash: string) => {
-    setTxStatus({ hash, stage: 'submitted', progress: 10 });
-    setTimeout(() => setTxStatus((p) => p ? { ...p, stage: 'confirming', progress: 35 } : null), 2500);
-    setTimeout(() => setTxStatus((p) => p ? { ...p, stage: 'bridging', progress: 65 } : null), 6000);
-    setTimeout(() => setTxStatus((p) => p ? { ...p, stage: 'completed', progress: 100 } : null), 12000);
+  // ── Real transaction status polling ─────────────────
+  const statusPollerRef = useRef<{ stop: () => void } | null>(null);
+
+  // Cleanup poller on unmount
+  useEffect(() => {
+    return () => { statusPollerRef.current?.stop(); };
+  }, []);
+
+  const startStatusPolling = (hash: string, provider: string, fromChain: ChainKey) => {
+    statusPollerRef.current?.stop();
+
+    setTxStatus({ hash, stage: 'submitted', progress: stageToProgress('submitted') });
+
+    statusPollerRef.current = pollTransactionStatus(
+      hash,
+      provider,
+      fromChain,
+      (result: TxStatusResult) => {
+        setTxStatus((prev) => {
+          if (!prev || prev.hash !== hash) return prev;
+          return {
+            ...prev,
+            stage: result.status,
+            progress: stageToProgress(result.status),
+            substatus: result.substatus,
+            receivingTxHash: result.receivingTxHash,
+            explorerLink: result.explorerLink
+          };
+        });
+      }
+    );
   };
 
   // ── Swap execution (Privy-only, never MetaMask) ─────
@@ -245,6 +551,8 @@ function App() {
           fromChain: draft.fromChain, toChain: draft.toChain,
           fromTokenSymbol: draft.fromTokenSymbol, toTokenSymbol: draft.toTokenSymbol,
           amount: draft.amount, status: 'submitted',
+          txHash,
+          provider: bestQuote.provider,
           metadata: { txHash, provider: bestQuote.provider }
         })
       });
@@ -262,6 +570,11 @@ function App() {
       return;
     }
 
+    if (isAmountInsufficient) {
+      setError(`Insufficient ${selectedFromToken.symbol} balance for this swap amount.`);
+      return;
+    }
+
     if (!bestQuote?.transactionRequest) {
       setError('No executable transaction found in this quote.');
       return;
@@ -274,6 +587,19 @@ function App() {
 
       await walletBridge.switchChain(fromChain.chainId);
       const provider = await walletBridge.getEthereumProvider();
+
+      // Ensure ERC-20 approval before executing the swap
+      const spenderAddress = bestQuote.transactionRequest.to;
+      if (spenderAddress && !isNativeToken(selectedFromToken.address)) {
+        const requiredAmount = requestedAmountRaw ?? parseUnits(draft.amount, selectedFromToken.decimals);
+        await ensureTokenApproval(
+          provider,
+          selectedFromToken.address,
+          walletBridge.address,
+          spenderAddress,
+          requiredAmount
+        );
+      }
 
       const txParams: Record<string, unknown> = {
         from: walletBridge.address,
@@ -298,8 +624,11 @@ function App() {
         params: [txParams]
       })) as string;
 
-      simulateTxProgress(txHash);
+      startStatusPolling(txHash, bestQuote.provider, draft.fromChain);
       await recordSwap(txHash);
+
+      // Refresh wallet balances after a short delay so the new on-chain state is reflected
+      setTimeout(() => setBalanceRefreshTick((t) => t + 1), 4000);
     } catch (caughtError) {
       setTxStatus((p) => p ? { ...p, stage: 'failed', progress: p.progress } : null);
       setError(caughtError instanceof Error ? caughtError.message : 'Swap execution failed.');
@@ -474,6 +803,16 @@ function App() {
             {(
               <div className="hf-fadeup" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem' }}>
                 <div className="hf-swap-card">
+                  <button
+                    className="hf-history-trigger"
+                    onClick={() => setHistoryOpen((prev) => !prev)}
+                    type="button"
+                    aria-label="Toggle transaction history"
+                    title="Transaction History"
+                  >
+                    🕒
+                  </button>
+
                   <h3 className="hf-swap-title">
                     Cross-Chain <span>Swap</span>
                   </h3>
@@ -502,12 +841,56 @@ function App() {
                       <TokenSelector
                         label="source"
                         selectedToken={selectedFromToken}
-                        tokens={fromTokenOptions}
+                        tokens={sortedFromTokenOptions}
                         chain={fromChain}
                         chains={CHAINS}
                         onSelectToken={(s) => { setDraft((c) => ({ ...c, fromTokenSymbol: s })); setQuotes({}); setSelectedProvider(null); }}
                         onSelectChain={(k) => updateFromChain(k as ChainKey)}
+                        balances={formattedSourceBalances}
                       />
+                    </div>
+                    <div className="hf-balance-row">
+                      {hasConnectedWallet && selectedSourceBalance != null ? (
+                        <>
+                          <span className="hf-balance-hint">
+                            {selectedSourceBalance} {selectedFromToken.symbol}
+                          </span>
+                          <div className="hf-balance-actions">
+                            {isAmountInsufficient && (
+                              <span className="hf-balance-alert">Insufficient</span>
+                            )}
+                            <button
+                              type="button"
+                              className="hf-pct-btn"
+                              onClick={() => {
+                                if (selectedSourceBalanceRaw == null) return;
+                                const half = selectedSourceBalanceRaw / 2n;
+                                const amount = formatUnits(half, selectedFromToken.decimals, selectedFromToken.decimals);
+                                const next = { ...draft, amount };
+                                setDraft(next);
+                                setQuotes({}); setSelectedProvider(null); setTxStatus(null);
+                                if (debounceRef.current) clearTimeout(debounceRef.current);
+                                fetchQuote(next);
+                              }}
+                            >50%</button>
+                            <button
+                              type="button"
+                              className="hf-pct-btn"
+                              onClick={() => {
+                                if (selectedSourceBalanceRaw == null) return;
+                                const amount = formatUnits(selectedSourceBalanceRaw, selectedFromToken.decimals, selectedFromToken.decimals);
+                                const next = { ...draft, amount };
+                                setDraft(next);
+                                setQuotes({}); setSelectedProvider(null); setTxStatus(null);
+                                if (debounceRef.current) clearTimeout(debounceRef.current);
+                                fetchQuote(next);
+                              }}
+                            >MAX</button>
+                          </div>
+                        </>
+                      ) : hasConnectedWallet ? (
+                        <span className="hf-balance-hint" />
+                      ) : null}
                     </div>
                   </div>
 
@@ -552,7 +935,8 @@ function App() {
                     <div className="hf-providers-list">
                       {([
                         { key: 'lifi' as ProviderKey, label: 'LI.FI', logo: '/providers/lifi.png' },
-                        { key: 'relay' as ProviderKey, label: 'Relay', logo: '/providers/relay.png' }
+                        { key: 'relay' as ProviderKey, label: 'Relay', logo: '/providers/relay.png' },
+                        { key: 'debridge' as ProviderKey, label: 'deBridge', logo: '/providers/debridge.png' }
                       ]).map(({ key, label, logo }) => {
                         const pQuote = quotes[key];
                         const pQuoting = quotingProviders.has(key);
@@ -591,24 +975,6 @@ function App() {
                           </div>
                         );
                       })}
-
-                      {/* Upcoming providers */}
-                      {([
-                        { label: 'deBridge', logo: '/providers/debridge.png' }
-                      ]).map(({ label, logo }) => (
-                        <div key={label} className="hf-provider-row">
-                          <div className="hf-provider-check hf-provider-check-upcoming">
-                            <Check size={10} strokeWidth={3} />
-                          </div>
-                          <div className="hf-provider-info">
-                            <span className="hf-provider-name" style={{ opacity: 0.4 }}>
-                              <img src={logo} alt={label} style={{ width: 14, height: 14, borderRadius: '4px', marginRight: '6px', verticalAlign: 'middle' }} />
-                              {label}
-                            </span>
-                            <span className="hf-provider-upcoming-label">Coming soon</span>
-                          </div>
-                        </div>
-                      ))}
                     </div>
                   </div>
 
@@ -639,7 +1005,7 @@ function App() {
                     <button
                       className="hf-btn hf-btn-primary hf-btn-wide"
                       onClick={executeSwap}
-                      disabled={isExecuting}
+                      disabled={isExecuting || isAmountInsufficient || shouldGateForBalanceCheck}
                     >
                       {isExecuting ? (
                         <><Loader2 size={14} className="hf-spin" /> Executing</>
@@ -652,7 +1018,7 @@ function App() {
                   ) : (
                     <button
                       className="hf-btn hf-btn-primary hf-btn-wide"
-                      disabled={isQuoting || !isValidSwapInput(draft)}
+                      disabled={isQuoting || !isValidSwapInput(draft) || isAmountInsufficient || shouldGateForBalanceCheck}
                       onClick={() => fetchQuote(draft)}
                     >
                       {isQuoting ? (
@@ -721,6 +1087,11 @@ function App() {
                   {bestQuote?.warning && (
                     <p className="hf-note hf-note-warning" style={{ marginTop: '0.7rem', width: '100%' }}>{bestQuote.warning}</p>
                   )}
+                  {balanceError && (
+                    <p className="hf-note hf-note-warning" style={{ marginTop: '0.7rem', width: '100%' }}>
+                      Balance check warning: {balanceError}
+                    </p>
+                  )}
                   {error && (
                     <p className="hf-note hf-note-error" style={{ marginTop: '0.7rem', width: '100%' }}>{error}</p>
                   )}
@@ -730,6 +1101,89 @@ function App() {
           </motion.main>
         )}
       </AnimatePresence>
+
+      {/* ── Transaction History Modal ───── */}
+      {historyOpen && (
+        <div className="hf-dropdown-overlay" onClick={() => setHistoryOpen(false)}>
+          <div
+            className="hf-dropdown-panel hf-history-modal hf-fadeup"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="hf-dropdown-header">
+              <h3>Transaction History</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {activeWalletAddress && (
+                  <span className="hf-history-address">
+                    {activeWalletAddress.slice(0, 6)}…{activeWalletAddress.slice(-4)}
+                  </span>
+                )}
+                <button
+                  className="hf-dropdown-close"
+                  onClick={() => setHistoryOpen(false)}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="hf-history-modal-body">
+              {historyLoading ? (
+                <p className="hf-history-empty"><Loader2 size={14} className="hf-spin" style={{ display: 'inline', marginRight: '0.4rem', verticalAlign: 'middle' }} />Loading transactions…</p>
+              ) : historyError ? (
+                <p className="hf-history-empty">{historyError}</p>
+              ) : historyRecords.length === 0 ? (
+                <p className="hf-history-empty">No transactions yet for this wallet.</p>
+              ) : (
+                <div className="hf-history-list">
+                  {historyRecords.map((record) => {
+                    const chainKey = record.fromChain in BLOCK_EXPLORER
+                      ? (record.fromChain as ChainKey)
+                      : undefined;
+                    const explorerUrl = chainKey
+                      ? `${BLOCK_EXPLORER[chainKey]}${record.txHash}`
+                      : undefined;
+                    const timestamp = record.createdAt
+                      ? new Date(record.createdAt).toLocaleString()
+                      : 'Unknown time';
+
+                    return (
+                      <div className="hf-history-item" key={`${record.txHash}-${record.createdAt ?? 'na'}`}>
+                        <div className="hf-history-row">
+                          <span className="hf-history-provider">{toProviderLabel(record.provider)}</span>
+                          <span className="hf-history-status">{record.status ?? 'submitted'}</span>
+                        </div>
+                        <div className="hf-history-row">
+                          <span className="hf-history-route">
+                            {record.amount} {record.fromTokenSymbol} → {record.toTokenSymbol}
+                          </span>
+                          <span className="hf-history-chain">
+                            {record.fromChain} → {record.toChain}
+                          </span>
+                        </div>
+                        <div className="hf-history-row">
+                          <span className="hf-history-time">{timestamp}</span>
+                          {explorerUrl ? (
+                            <a
+                              href={explorerUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hf-history-link"
+                            >
+                              View on Explorer
+                            </a>
+                          ) : (
+                            <span className="hf-history-link hf-history-link-muted">Explorer N/A</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Footer ──────────────────────── */}
       <footer className="hf-footer">

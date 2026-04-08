@@ -2,6 +2,7 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { requestLiFiQuote } from '../lib/lifiClient.js';
 import { requestRelayQuote } from '../lib/relayClient.js';
+import { requestDebridgeQuote } from '../lib/debridgeClient.js';
 import { QuoteLog } from '../models/QuoteLog.js';
 import { isDatabaseReady } from '../config/db.js';
 import { env } from '../config/env.js';
@@ -20,7 +21,7 @@ const quoteLimiter = rateLimit({
 
 router.post('/quotes', quoteLimiter, async (req, res) => {
   const requestedProvider = typeof req.query.provider === 'string' ? req.query.provider.toLowerCase() : undefined;
-  const supportedProviders = ['lifi', 'relay', 'squid'] as const;
+  const supportedProviders = ['lifi', 'relay', 'debridge'] as const;
 
   if (requestedProvider && !supportedProviders.includes(requestedProvider as (typeof supportedProviders)[number])) {
     return res.status(400).json({
@@ -31,10 +32,15 @@ router.post('/quotes', quoteLimiter, async (req, res) => {
   const provider = requestedProvider ?? 'lifi';
 
   try {
-    let quote: Awaited<ReturnType<typeof requestLiFiQuote>> | Awaited<ReturnType<typeof requestRelayQuote>>;
+    let quote:
+      | Awaited<ReturnType<typeof requestLiFiQuote>>
+      | Awaited<ReturnType<typeof requestRelayQuote>>
+      | Awaited<ReturnType<typeof requestDebridgeQuote>>;
 
     if (provider === 'relay') {
       quote = await requestRelayQuote(req.body);
+    } else if (provider === 'debridge') {
+      quote = await requestDebridgeQuote(req.body);
     } else {
       quote = await requestLiFiQuote(req.body);
     }
