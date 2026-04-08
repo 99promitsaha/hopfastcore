@@ -377,56 +377,30 @@ input, select, textarea, button { font-family: inherit; }
   padding: 0.18rem 0.5rem;
 }
 
-/* ─── Chain logos grid on landing ────────────────────── */
+/* ─── Chain logos strip on landing ───────────────────── */
 .hf-chain-logos {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1.5rem;
+  gap: 0.75rem;
   margin-top: 2rem;
-  flex-wrap: wrap;
 }
 
-.hf-chain-logo-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-  opacity: 0.55;
-  transition: opacity var(--hf-transition);
-}
-
-.hf-chain-logo-item:hover {
+.hf-chain-logo-icon {
+  width: 28px;
+  height: 28px;
   opacity: 1;
+  transition: transform var(--hf-transition);
 }
 
-.hf-chain-logo-item img {
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  background: var(--hf-bg-card);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  padding: 2px;
-}
-
-.hf-chain-logo-item span {
-  font-size: 0.6rem;
-  font-weight: 600;
-  color: var(--hf-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.hf-chain-logo-more {
-  opacity: 0.45;
+.hf-chain-logo-icon:hover {
+  transform: scale(1.12);
 }
 
 .hf-chain-more-label {
-  font-size: 0.6rem !important;
-  font-weight: 600 !important;
-  color: var(--hf-text-secondary) !important;
-  text-transform: none !important;
-  letter-spacing: 0.03em !important;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--hf-text-primary);
   white-space: nowrap;
 }
 
@@ -719,7 +693,6 @@ input, select, textarea, button { font-family: inherit; }
 .hf-token-btn img {
   width: 22px;
   height: 22px;
-  border-radius: 999px;
 }
 
 .hf-token-btn svg {
@@ -751,7 +724,6 @@ input, select, textarea, button { font-family: inherit; }
 .hf-chain-badge img {
   width: 14px;
   height: 14px;
-  border-radius: 999px;
 }
 
 /* ─── Token/Chain Dropdown Modal ─────────────────────── */
@@ -840,7 +812,6 @@ input, select, textarea, button { font-family: inherit; }
 .hf-dropdown-item img {
   width: 32px;
   height: 32px;
-  border-radius: 999px;
   flex-shrink: 0;
 }
 
@@ -861,7 +832,7 @@ input, select, textarea, button { font-family: inherit; }
 
 /* ─── Switch/Swap Direction Button ───────────────────── */
 .hf-switch-btn {
-  border: 1px solid var(--hf-border);
+  border: 2px solid var(--hf-bg-base);
   width: 2.2rem;
   height: 2.2rem;
   border-radius: 999px;
@@ -872,8 +843,8 @@ input, select, textarea, button { font-family: inherit; }
   justify-content: center;
   position: absolute;
   left: 50%;
-  z-index: 3;
   transform: translateX(-50%);
+  z-index: 3;
   transition: all 0.35s cubic-bezier(.4,0,.2,1);
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
@@ -889,7 +860,7 @@ input, select, textarea, button { font-family: inherit; }
   display: flex;
   justify-content: center;
   height: 0;
-  margin: -0.15rem 0;
+  margin: -0.2rem 0;
 }
 
 /* ─── Provider Section ───────────────────────────────── */
@@ -1356,8 +1327,8 @@ input, select, textarea, button { font-family: inherit; }
 
 .hf-stat-label {
   font-size: 0.6rem;
-  font-weight: 600;
-  color: var(--hf-text-muted);
+  font-weight: 700;
+  color: var(--hf-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-top: 0.1rem;

@@ -66,7 +66,7 @@ export const CHAINS: ChainOption[] = [
     key: 'base',
     name: 'Base',
     chainId: 8453,
-    logoURI: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/info/logo.png',
+    logoURI: '/base-logo.svg',
     tokens: [
       {
         symbol: 'ETH',

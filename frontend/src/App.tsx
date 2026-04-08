@@ -90,6 +90,7 @@ function isValidSwapInput(draft: SwapDraft): boolean {
 
 function App() {
   const [view, setView] = useState<EntryView>('landing');
+  const pendingLogin = useRef(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [walletBridge, setWalletBridge] = useState<PrivyWalletBridge | null>(null);
   const [draft, setDraft] = useState<SwapDraft>(DEFAULT_DRAFT);
@@ -144,6 +145,7 @@ function App() {
   // ── Gate navigation: require Privy login before entering Human view ──
   const handleHumanClick = () => {
     if (HAS_PRIVY && !privyAuth.authenticated) {
+      pendingLogin.current = true;
       privyAuth.login();
       return;
     }
@@ -210,9 +212,10 @@ function App() {
     return () => clearInterval(interval);
   }, [view, draft, isExecuting, fetchQuote]);
 
-  // ── If user logs in via Privy while on landing, enter human view ──
+  // ── If user actively logs in via Privy (not session restore), enter human view ──
   useEffect(() => {
-    if (HAS_PRIVY && privyAuth.authenticated && view === 'landing') {
+    if (HAS_PRIVY && privyAuth.authenticated && pendingLogin.current) {
+      pendingLogin.current = false;
       setView('human');
     }
   }, [privyAuth.authenticated]);
@@ -393,14 +396,9 @@ function App() {
 
             <div className="hf-chain-logos">
               {CHAINS.slice(0, 4).map((chain) => (
-                <div key={chain.key} className="hf-chain-logo-item">
-                  <img src={chain.logoURI} alt={chain.name} />
-                  <span>{chain.name}</span>
-                </div>
+                <img key={chain.key} className="hf-chain-logo-icon" src={chain.logoURI} alt={chain.name} />
               ))}
-              <div className="hf-chain-logo-item hf-chain-logo-more">
-                <span className="hf-chain-more-label">&amp; more soon</span>
-              </div>
+              <span className="hf-chain-more-label">+ more</span>
             </div>
 
             <div className="hf-stats-bar">
@@ -454,7 +452,7 @@ function App() {
           >
             {/* Top bar */}
             <div className="hf-human-topbar">
-              <button className="hf-link-btn" onClick={() => setView('landing')}>
+              <button className="hf-link-btn" onClick={() => { setView('landing'); setDraft(DEFAULT_DRAFT); setQuotes({}); setTxStatus(null); }}>
                 ← Back
               </button>
             </div>
@@ -578,8 +576,6 @@ function App() {
 
                       {/* Upcoming providers */}
                       {([
-                        { label: 'Socket', logo: '/providers/socket.png' },
-                        { label: 'Squid', logo: '/providers/squid.ico' },
                         { label: 'deBridge', logo: '/providers/debridge.png' }
                       ]).map(({ label, logo }) => (
                         <div key={label} className="hf-provider-row">
