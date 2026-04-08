@@ -16,9 +16,6 @@ const schema = z.object({
   LIFI_INTEGRATOR: z.preprocess(emptyToUndefined, z.string().optional()),
   LIFI_FEE: z.preprocess(emptyToUndefined, z.coerce.number().optional()),
   LIFI_SLIPPAGE: z.coerce.number().default(0.005),
-  OPENAI_API_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
-  OPENAI_MODEL: z.string().default('gpt-4.1-mini'),
-  OPENAI_API_BASE_URL: z.string().default('https://api.openai.com/v1'),
   RELAY_API_BASE_URL: z.string().default('https://api.relay.link')
 });
 
