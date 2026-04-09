@@ -1,4 +1,10 @@
-import { NATIVE_TOKEN_ADDRESS, type ChainKey, type TokenOption } from '../lib/chains';
+import { NATIVE_TOKEN_ADDRESS, type ChainKey } from '../lib/chains';
+
+interface TokenDef {
+  address: string;
+  symbol: string;
+  decimals: number;
+}
 
 const BALANCE_OF_SELECTOR = '0x70a08231';
 
@@ -68,7 +74,7 @@ async function rpcCall<T>(rpcUrl: string, method: string, params: unknown[], id:
 async function fetchBalancesViaAlchemy(
   alchemyUrl: string,
   walletAddress: string,
-  tokens: TokenOption[]
+  tokens: TokenDef[]
 ): Promise<Record<string, bigint>> {
   const balances: Record<string, bigint> = {};
   const address = walletAddress.toLowerCase();
@@ -156,7 +162,7 @@ async function fetchBalancesViaAlchemy(
 async function fetchBalancesViaRpc(
   rpcUrl: string,
   walletAddress: string,
-  tokens: TokenOption[]
+  tokens: TokenDef[]
 ): Promise<Record<string, bigint>> {
   const address = walletAddress.toLowerCase();
   const dedupedTokens = Array.from(
@@ -215,7 +221,7 @@ async function runWithConcurrency<T>(
 export async function fetchTokenBalancesForChain(
   chainKey: ChainKey,
   walletAddress: string,
-  tokens: TokenOption[]
+  tokens: TokenDef[]
 ): Promise<Record<string, bigint>> {
   // Try Alchemy first (fast single-call for Ethereum, Base, Polygon)
   const alchemyUrl = getAlchemyUrl(chainKey);
@@ -253,7 +259,7 @@ export async function fetchTokenBalancesForChain(
 export async function fetchSingleTokenBalance(
   chainKey: ChainKey,
   walletAddress: string,
-  token: TokenOption
+  token: TokenDef
 ): Promise<bigint | null> {
   const address = walletAddress.toLowerCase();
   const tokenAddress = token.address.toLowerCase();
