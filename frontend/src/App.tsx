@@ -295,8 +295,8 @@ function App() {
 
               <h3>5. Data Storage &amp; Security</h3>
               <p>
-                Position records are stored in a secured database. We employ industry-standard security measures
-                to protect stored data. However, no system is 100% secure, and we cannot guarantee absolute security.
+                Position records are stored in a MongoDB database. We do employ security measures
+                to protect stored user data. However, no system is 100% secure, and we cannot guarantee absolute security.
                 You can delete your position records from our database at any time via the &quot;Your Positions&quot; tab.
               </p>
 
