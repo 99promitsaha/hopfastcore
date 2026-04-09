@@ -1007,6 +1007,11 @@ input, select, textarea, button { font-family: inherit; }
   background: rgba(245,167,202,0.04);
 }
 
+.hf-provider-row-disabled {
+  opacity: 0.38;
+  pointer-events: none;
+}
+
 .hf-provider-check {
   width: 18px;
   height: 18px;
@@ -1502,6 +1507,23 @@ input, select, textarea, button { font-family: inherit; }
 @keyframes livePulse {
   0%, 100% { transform: scale(1); opacity: 0.35; }
   50% { transform: scale(1.5); opacity: 0; }
+}
+
+.hf-live-dot-warning {
+  background: var(--hf-warning);
+}
+
+.hf-live-dot-warning::before {
+  background: var(--hf-warning);
+}
+
+.hf-provider-issues-hint {
+  display: inline-flex;
+  align-items: center;
+  color: var(--hf-warning);
+  cursor: help;
+  margin-left: 0.15rem;
+  opacity: 0.85;
 }
 
 /* ─── Stats bar ──────────────────────────────────────── */

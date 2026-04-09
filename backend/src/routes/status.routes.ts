@@ -165,10 +165,61 @@ async function fetchRelayStatus(txHash: string, fromChainId: number): Promise<St
   return { status: 'confirming', substatus: 'Waiting for Relay to detect the transaction.' };
 }
 
+// ── Squid status: GET v2.api.squidrouter.com/v2/status?transactionId=...&fromChainId=...&toChainId=...
+async function fetchSquidStatus(txHash: string, fromChainId: number, toChainId?: number): Promise<StatusResult> {
+  const params = new URLSearchParams({
+    transactionId: txHash,
+    fromChainId: String(fromChainId),
+    toChainId: String(toChainId ?? fromChainId)
+  });
+
+  const headers: Record<string, string> = {};
+  if (env.SQUID_INTEGRATOR_ID) {
+    headers['x-integrator-id'] = env.SQUID_INTEGRATOR_ID;
+  }
+
+  const response = await fetch(`${env.SQUID_API_BASE_URL}/v2/status?${params.toString()}`, { headers });
+
+  if (!response.ok) {
+    const text = await response.text();
+    if (response.status === 404 || text.includes('not_found')) {
+      return { status: 'confirming', substatus: 'Waiting for Squid to detect the transaction.' };
+    }
+    throw new Error(`Squid status check failed (${response.status}): ${text}`);
+  }
+
+  const data = (await response.json()) as {
+    squidTransactionStatus?: string;
+    toChain?: { transactionId?: string };
+  };
+
+  const squidStatus = data.squidTransactionStatus?.toLowerCase();
+
+  let status: StatusResult['status'];
+  if (squidStatus === 'success') {
+    status = 'completed';
+  } else if (squidStatus === 'partial_success' || squidStatus === 'needs_gas') {
+    status = 'failed';
+  } else if (squidStatus === 'ongoing') {
+    status = 'bridging';
+  } else if (squidStatus === 'not_found') {
+    status = 'confirming';
+  } else {
+    status = 'confirming';
+  }
+
+  return {
+    status,
+    substatus: data.squidTransactionStatus,
+    receivingTxHash: data.toChain?.transactionId
+  };
+}
+
 router.get('/status', async (req, res) => {
   const txHash = typeof req.query.txHash === 'string' ? req.query.txHash : undefined;
   const provider = typeof req.query.provider === 'string' ? req.query.provider.toLowerCase() : undefined;
   const fromChainKey = typeof req.query.fromChain === 'string' ? req.query.fromChain : undefined;
+  const toChainKey = typeof req.query.toChain === 'string' ? req.query.toChain : undefined;
 
   if (!txHash || !provider) {
     return res.status(400).json({ error: 'Missing required params: txHash, provider.' });
@@ -176,6 +227,10 @@ router.get('/status', async (req, res) => {
 
   const fromChainId = fromChainKey && fromChainKey in CHAIN_ID_BY_KEY
     ? CHAIN_ID_BY_KEY[fromChainKey as ChainKey]
+    : undefined;
+
+  const toChainId = toChainKey && toChainKey in CHAIN_ID_BY_KEY
+    ? CHAIN_ID_BY_KEY[toChainKey as ChainKey]
     : undefined;
 
   try {
@@ -187,6 +242,8 @@ router.get('/status', async (req, res) => {
       result = await fetchDebridgeStatus(txHash);
     } else if (provider === 'relay' || provider === 'relay-api') {
       result = await fetchRelayStatus(txHash, fromChainId ?? 1);
+    } else if (provider === 'squid' || provider === 'squid-api') {
+      result = await fetchSquidStatus(txHash, fromChainId ?? 1, toChainId);
     } else {
       return res.status(400).json({ error: `Unsupported provider: ${provider}` });
     }

@@ -13,7 +13,9 @@
       "WebSearch",
       "WebFetch(domain:radar.relay.link)",
       "WebFetch(domain:docs.debridge.finance)",
-      "WebFetch(domain:docs.debridge.com)"
+      "WebFetch(domain:docs.debridge.com)",
+      "WebFetch(domain:docs.squidrouter.com)",
+      "WebFetch(domain:api.squidrouter.com)"
     ]
   }
 }

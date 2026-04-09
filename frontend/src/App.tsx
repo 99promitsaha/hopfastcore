@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowUpDown, Bot, Check, CheckCircle2, ExternalLink,
-  Loader2, Radio, UserRound, X, Zap
+  Info, Loader2, Radio, UserRound, X, Zap
 } from 'lucide-react';
 import {
   DemoWalletConnector, PrivyWalletConnector, usePrivyAuth,
@@ -64,8 +64,11 @@ const TX_STAGES: { key: TxStage; label: string }[] = [
   { key: 'completed', label: 'Complete' }
 ];
 
-type ProviderKey = 'lifi' | 'relay' | 'debridge';
-const LIVE_PROVIDERS: ProviderKey[] = ['lifi', 'relay', 'debridge'];
+type ProviderKey = 'lifi' | 'relay' | 'debridge' | 'squid';
+const IS_PROD = import.meta.env.PROD;
+const LIVE_PROVIDERS: ProviderKey[] = IS_PROD
+  ? ['lifi', 'squid', 'debridge']
+  : ['lifi', 'squid', 'debridge', 'relay'];
 const HISTORY_LIMIT = 50;
 
 function makeBalanceKey(chain: ChainKey, tokenAddress: string): string {
@@ -109,7 +112,6 @@ function isValidSwapInput(draft: SwapDraft): boolean {
 const ALLOWANCE_SELECTOR = '0xdd62ed3e';
 // ERC-20 approve selector: approve(spender, amount)
 const APPROVE_SELECTOR = '0x095ea7b3';
-const MAX_UINT256 = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
 
 function encodeAllowanceCall(owner: string, spender: string): string {
   const o = owner.toLowerCase().replace(/^0x/, '').padStart(64, '0');
@@ -117,9 +119,9 @@ function encodeAllowanceCall(owner: string, spender: string): string {
   return `${ALLOWANCE_SELECTOR}${o}${s}`;
 }
 
-function encodeApproveCall(spender: string): string {
+function encodeApproveCall(spender: string, approveAmount: bigint): string {
   const s = spender.toLowerCase().replace(/^0x/, '').padStart(64, '0');
-  const amount = MAX_UINT256.replace(/^0x/, '').padStart(64, '0');
+  const amount = approveAmount.toString(16).padStart(64, '0');
   return `${APPROVE_SELECTOR}${s}${amount}`;
 }
 
@@ -149,8 +151,8 @@ async function ensureTokenApproval(
   const currentAllowance = BigInt(allowanceHex || '0x0');
   if (currentAllowance >= requiredAmount) return;
 
-  // Send approval transaction
-  const approveData = encodeApproveCall(spenderAddress);
+  // Approve only the exact amount needed for this swap
+  const approveData = encodeApproveCall(spenderAddress, requiredAmount);
   await provider.request({
     method: 'eth_sendTransaction',
     params: [{
@@ -934,18 +936,20 @@ function App() {
                     <p className="hf-providers-label">Route Providers</p>
                     <div className="hf-providers-list">
                       {([
-                        { key: 'lifi' as ProviderKey, label: 'LI.FI', logo: '/providers/lifi.png' },
-                        { key: 'relay' as ProviderKey, label: 'Relay', logo: '/providers/relay.png' },
-                        { key: 'debridge' as ProviderKey, label: 'deBridge', logo: '/providers/debridge.png' }
-                      ]).map(({ key, label, logo }) => {
+                        { key: 'lifi' as ProviderKey, label: 'LI.FI', logo: '/providers/lifi.png', issues: false },
+                        { key: 'squid' as ProviderKey, label: 'Squid', logo: '/providers/squid.ico', issues: false },
+                        { key: 'debridge' as ProviderKey, label: 'deBridge', logo: '/providers/debridge.png', issues: false },
+                        { key: 'relay' as ProviderKey, label: 'Relay', logo: '/providers/relay.png', issues: true }
+                      ]).map(({ key, label, logo, issues }) => {
+                        const isDisabled = IS_PROD && key === 'relay';
                         const pQuote = quotes[key];
                         const pQuoting = quotingProviders.has(key);
                         const isSelected = bestQuote != null && pQuote != null && pQuote.id === bestQuote.id;
-                        const canSelect = pQuote != null && !pQuoting;
+                        const canSelect = pQuote != null && !pQuoting && !isDisabled;
                         return (
                           <div
                             key={key}
-                            className={`hf-provider-row ${isSelected ? 'hf-provider-row-active' : ''} ${canSelect ? 'hf-provider-row-clickable' : ''}`}
+                            className={`hf-provider-row ${isSelected ? 'hf-provider-row-active' : ''} ${canSelect ? 'hf-provider-row-clickable' : ''} ${isDisabled ? 'hf-provider-row-disabled' : ''}`}
                             onClick={() => { if (canSelect) setSelectedProvider(key); }}
                           >
                             <div className={`hf-provider-check ${isSelected ? '' : 'hf-provider-check-upcoming'}`}>
@@ -955,7 +959,12 @@ function App() {
                               <span className="hf-provider-name">
                                 <img src={logo} alt={label} style={{ width: 14, height: 14, borderRadius: '4px', marginRight: '6px', verticalAlign: 'middle' }} />
                                 {label}
-                                <span className="hf-live-dot" />
+                                <span className={issues ? 'hf-live-dot hf-live-dot-warning' : 'hf-live-dot'} />
+                                {issues && (
+                                  <span className="hf-provider-issues-hint" title="Experiencing issues. Back shortly.">
+                                    <Info size={12} />
+                                  </span>
+                                )}
                               </span>
                               {pQuoting ? (
                                 <span className="hf-provider-meta">
@@ -966,6 +975,8 @@ function App() {
                                   {formatUsd(pQuote.feeUsd)} fee • ~{pQuote.etaSeconds}s
                                   {isSelected && <span className="hf-best-badge">selected</span>}
                                 </span>
+                              ) : isDisabled ? (
+                                <span className="hf-provider-meta">Unavailable</span>
                               ) : (
                                 <span className="hf-provider-meta">
                                   {isValidSwapInput(draft) ? 'Ready' : 'Enter amount'}
