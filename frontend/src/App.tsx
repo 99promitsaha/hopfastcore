@@ -643,7 +643,15 @@ function App() {
       startStatusPolling(txHash, bestQuote.provider, draft.fromChain);
       await recordSwap(txHash);
 
-      setTimeout(() => setBalanceRefreshTick((t) => t + 1), 4000);
+      // Clear the form so the old amount doesn't linger and trigger auto-requotes
+      setDraft((c) => ({ ...c, amount: '' }));
+      setQuotes({});
+      setSelectedProvider(null);
+
+      // Refresh balance at 8s, 20s, 45s — spread to catch confirmation on any chain speed
+      [8000, 20000, 45000].forEach((delay) => {
+        setTimeout(() => setBalanceRefreshTick((t) => t + 1), delay);
+      });
     } catch (caughtError) {
       setTxStatus((p) => p ? { ...p, stage: 'failed', progress: p.progress } : null);
       setError(caughtError instanceof Error ? caughtError.message : 'Swap execution failed.');
