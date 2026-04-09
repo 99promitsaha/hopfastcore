@@ -759,7 +759,7 @@ function App() {
       {/* ── Header ───────────────────────── */}
       <header className="hf-header">
         <div className="hf-logo" onClick={() => { setView('landing'); setTxStatus(null); }} style={{ cursor: 'pointer' }}>
-          <div className="hf-logo-icon">⚡</div>
+          <div className="hf-logo-icon">🐰</div>
           <span className="hf-logo-text">HopFast</span>
         </div>
 
@@ -784,12 +784,12 @@ function App() {
           >
             <div className="hf-hero">
               <h1>
-                Move assets
+                Hop assets
                 <br />
-                <span>at light speed.</span>
+                <span>at light speed 🐰</span>
               </h1>
               <p className="hf-hero-sub">
-                Cross-chain swaps powered by the fastest liquidity routes. Bridge any token across 4+ chains in seconds by comparing quotes from LI.FI, Squid, deBridge &amp; more.
+                Go Hop across 5 chains in seconds by comparing quotes from LI.FI, Squid, deBridge &amp; more.
               </p>
             </div>
 
