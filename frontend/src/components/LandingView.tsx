@@ -24,7 +24,7 @@ export function LandingView({ onHumanClick, onAgentClick }: LandingViewProps) {
           <span>at light speed 🐰</span>
         </h1>
         <p className="hf-hero-sub">
-          Go Hop across 5 chains in seconds by comparing quotes from LI.FI, Squid, deBridge &amp; more.
+          Swap across chains in seconds. Earn yield while you sleep.
         </p>
       </div>
 
@@ -32,7 +32,7 @@ export function LandingView({ onHumanClick, onAgentClick }: LandingViewProps) {
         <button className="hf-role-card" onClick={onHumanClick}>
           <div>
             <p className="hf-role-title">Human</p>
-            <p className="hf-role-sub">Instant cross-chain bridging</p>
+            <p className="hf-role-sub">Swap. Earn. All in one hop 🐇</p>
           </div>
           <span className="hf-role-icon">
             <UserRound size={18} />
