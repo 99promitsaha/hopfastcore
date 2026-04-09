@@ -15,8 +15,9 @@ const SYMBOL_TO_COINGECKO_ID: Record<string, string> = {
   BTCB:  'bitcoin',
   cbBTC: 'coinbase-wrapped-btc',
   BUSD:  'binance-usd',
-  POL:   'matic-network',
-  MON:   'monad-2'
+  POL:     'polygon-ecosystem-token',
+  MON:     'monad',
+  VIRTUAL: 'virtual-protocol'
 };
 
 interface PriceCache {

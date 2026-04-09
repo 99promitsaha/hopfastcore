@@ -121,50 +121,6 @@ async function fetchDebridgeStatus(txHash: string): Promise<StatusResult> {
   };
 }
 
-// ── Relay status: GET api.relay.link/intents/status/v3?requestId=...
-// Relay's requestId comes from the step response; fall back to source tx receipt check
-async function fetchRelayStatus(txHash: string, fromChainId: number): Promise<StatusResult> {
-  // Try Relay's requests endpoint with the origin tx hash
-  // Relay indexes requests by the origin transaction hash
-  const response = await fetch(
-    `${env.RELAY_API_BASE_URL}/intents/status/v2?originChainId=${fromChainId}&txHash=${txHash}`
-  );
-
-  if (response.ok) {
-    const data = (await response.json()) as {
-      status?: string;
-      inTxHashes?: string[];
-      txHashes?: string[];
-    };
-
-    const relayStatus = data.status?.toLowerCase();
-
-    let status: StatusResult['status'];
-    if (relayStatus === 'success') {
-      status = 'completed';
-    } else if (relayStatus === 'failure') {
-      status = 'failed';
-    } else if (relayStatus === 'refunded' || relayStatus === 'refund') {
-      status = 'failed';
-    } else if (relayStatus === 'pending' || relayStatus === 'submitted' || relayStatus === 'delayed') {
-      status = 'bridging';
-    } else if (relayStatus === 'depositing' || relayStatus === 'waiting') {
-      status = 'confirming';
-    } else {
-      status = 'confirming';
-    }
-
-    return {
-      status,
-      substatus: data.status,
-      receivingTxHash: data.txHashes?.[0]
-    };
-  }
-
-  // Relay hasn't indexed it yet — treat as confirming
-  return { status: 'confirming', substatus: 'Waiting for Relay to detect the transaction.' };
-}
-
 // ── Squid status: GET v2.api.squidrouter.com/v2/status?transactionId=...&fromChainId=...&toChainId=...
 async function fetchSquidStatus(txHash: string, fromChainId: number, toChainId?: number): Promise<StatusResult> {
   const params = new URLSearchParams({
@@ -240,8 +196,6 @@ router.get('/status', async (req, res) => {
       result = await fetchLiFiStatus(txHash, fromChainId ?? 1);
     } else if (provider === 'debridge' || provider === 'debridge-api') {
       result = await fetchDebridgeStatus(txHash);
-    } else if (provider === 'relay' || provider === 'relay-api') {
-      result = await fetchRelayStatus(txHash, fromChainId ?? 1);
     } else if (provider === 'squid' || provider === 'squid-api') {
       result = await fetchSquidStatus(txHash, fromChainId ?? 1, toChainId);
     } else {

@@ -479,14 +479,6 @@ input, select, textarea, button { font-family: inherit; }
 }
 
 /* ─── Human View ─────────────────────────────────────── */
-.hf-human-topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.8rem;
-  width: min(520px, 100%);
-  margin-bottom: 0.5rem;
-}
 
 /* ─── Tabs ───────────────────────────────────────────── */
 .hf-tabs {
@@ -625,25 +617,31 @@ input, select, textarea, button { font-family: inherit; }
   box-shadow: var(--hf-shadow-elevated);
 }
 
-.hf-history-trigger {
+/* Symmetric corner icon buttons (back = top-left, history = top-right) */
+.hf-card-corner-btn {
   position: absolute;
-  top: 0.7rem;
-  right: 0.8rem;
+  top: 0.75rem;
+  left: 0.8rem;
   border: 1px solid var(--hf-border);
   background: var(--hf-bg-elevated);
-  color: var(--hf-text-primary);
+  color: var(--hf-text-secondary);
   border-radius: 999px;
   width: 1.9rem;
   height: 1.9rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.86rem;
   cursor: pointer;
-  transition: all var(--hf-transition);
+  transition: color var(--hf-transition), border-color var(--hf-transition), transform var(--hf-transition);
 }
 
-.hf-history-trigger:hover {
+.hf-card-corner-btn--right {
+  left: auto;
+  right: 0.8rem;
+}
+
+.hf-card-corner-btn:hover {
+  color: var(--hf-text-primary);
   border-color: var(--hf-border-active);
   transform: translateY(-1px);
 }
@@ -677,17 +675,34 @@ input, select, textarea, button { font-family: inherit; }
 }
 
 /* ─── Token Input Field Group ────────────────────────── */
-.hf-field-group {
-  background: var(--hf-bg-input);
+/* ── Unified swap fields container ───────────────────── */
+.hf-swap-fields {
+  position: relative;
   border: 1px solid var(--hf-border);
   border-radius: var(--hf-radius-sm);
-  padding: 0.9rem;
+  background: var(--hf-bg-input);
   margin-bottom: 0.55rem;
   transition: border-color var(--hf-transition);
 }
 
-.hf-field-group:focus-within {
+.hf-swap-fields:focus-within {
   border-color: var(--hf-border-active);
+}
+
+.hf-field-group {
+  padding: 0.9rem;
+  transition: border-color var(--hf-transition);
+}
+
+/* Top field — rounded top corners, divider on bottom */
+.hf-field-group--top {
+  border-radius: var(--hf-radius-sm) var(--hf-radius-sm) 0 0;
+  border-bottom: 1px solid var(--hf-border);
+}
+
+/* Bottom field — rounded bottom corners */
+.hf-field-group--bottom {
+  border-radius: 0 0 var(--hf-radius-sm) var(--hf-radius-sm);
 }
 
 .hf-field-label {
@@ -697,6 +712,13 @@ input, select, textarea, button { font-family: inherit; }
   margin-bottom: 0.55rem;
 }
 
+.hf-field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
 .hf-field-kicker {
   font-size: 0.62rem;
   letter-spacing: 0.1em;
@@ -704,6 +726,39 @@ input, select, textarea, button { font-family: inherit; }
   text-transform: uppercase;
   color: var(--hf-text-secondary);
   font-family: var(--hf-font-headline);
+}
+
+.hf-chain-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--hf-border);
+  border-radius: 999px;
+  background: var(--hf-bg-elevated);
+  color: var(--hf-text-secondary);
+  padding: 0.28rem 0.65rem 0.28rem 0.42rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--hf-transition);
+  white-space: nowrap;
+}
+
+.hf-chain-btn:hover {
+  color: var(--hf-text-primary);
+  border-color: var(--hf-border-active);
+  background: rgba(245,167,202,0.08);
+}
+
+.hf-chain-btn img {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+}
+
+.hf-chain-btn svg {
+  opacity: 0.45;
+  flex-shrink: 0;
 }
 
 .hf-field-usd {
@@ -895,6 +950,7 @@ input, select, textarea, button { font-family: inherit; }
 .hf-token-btn img {
   width: 22px;
   height: 22px;
+  border-radius: 50%;
 }
 
 .hf-token-btn svg {
@@ -903,30 +959,6 @@ input, select, textarea, button { font-family: inherit; }
   opacity: 0.4;
 }
 
-.hf-chain-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  border: 0;
-  border-radius: 999px;
-  background: var(--hf-bg-elevated);
-  color: var(--hf-text-secondary);
-  padding: 0.18rem 0.5rem 0.18rem 0.25rem;
-  font-size: 0.62rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--hf-transition);
-}
-
-.hf-chain-badge:hover {
-  color: var(--hf-text-primary);
-  background: rgba(245,167,202,0.10);
-}
-
-.hf-chain-badge img {
-  width: 14px;
-  height: 14px;
-}
 
 /* ─── Token/Chain Dropdown Modal ─────────────────────── */
 .hf-dropdown-overlay {
@@ -1037,6 +1069,7 @@ input, select, textarea, button { font-family: inherit; }
   width: 32px;
   height: 32px;
   flex-shrink: 0;
+  border-radius: 50%;
 }
 
 .hf-dropdown-item-info {
@@ -1062,36 +1095,40 @@ input, select, textarea, button { font-family: inherit; }
 }
 
 /* ─── Switch/Swap Direction Button ───────────────────── */
-.hf-switch-btn {
-  border: 2px solid var(--hf-bg-base);
-  width: 2.2rem;
-  height: 2.2rem;
-  border-radius: 999px;
-  background: var(--hf-bg-card);
-  color: var(--hf-primary-dark);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 3;
-  transition: all 0.35s cubic-bezier(.4,0,.2,1);
-  box-shadow: 0 2px 8px rgba(50,67,94,0.10);
-}
 
-.hf-switch-btn:hover {
-  transform: translateX(-50%) rotate(180deg);
-  border-color: var(--hf-primary);
-  background: rgba(245,167,202,0.1);
-}
-
+/* Anchor sits exactly on the divider line */
 .hf-switch-anchor {
   position: relative;
   display: flex;
   justify-content: center;
   height: 0;
-  margin: -0.2rem 0;
+  z-index: 4;
+}
+
+.hf-switch-btn {
+  /* Thick white ring "stamps" into the divider, creating the notch illusion */
+  border: 3px solid var(--hf-bg-card);
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 999px;
+  background: var(--hf-gradient-brand);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  transition: transform 0.35s cubic-bezier(.4,0,.2,1), box-shadow 0.2s;
+  box-shadow: 0 2px 10px rgba(245, 167, 202, 0.35);
+  cursor: pointer;
+}
+
+.hf-switch-btn:hover {
+  transform: translate(-50%, -50%) rotate(180deg);
+  box-shadow: 0 4px 16px rgba(245, 167, 202, 0.5);
 }
 
 /* ─── Provider Section ───────────────────────────────── */
@@ -1212,6 +1249,38 @@ input, select, textarea, button { font-family: inherit; }
 .hf-provider-meta-noroute {
   color: rgba(251, 191, 36, 0.7);
   font-style: italic;
+}
+
+.hf-provider-meta-retrying {
+  color: var(--hf-text-secondary);
+  opacity: 0.7;
+}
+
+/* Skeleton shimmer — used while a provider is fetching its initial quote */
+@keyframes hf-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+.hf-skeleton {
+  display: inline-block;
+  width: 80px;
+  height: 0.65rem;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    rgba(50, 67, 94, 0.08) 25%,
+    rgba(50, 67, 94, 0.18) 50%,
+    rgba(50, 67, 94, 0.08) 75%
+  );
+  background-size: 200% 100%;
+  animation: hf-shimmer 1.4s ease-in-out infinite;
+}
+
+.hf-balance-skeleton {
+  width: 72px;
+  height: 0.6rem;
+  vertical-align: middle;
 }
 
 .hf-provider-upcoming-label {
@@ -1715,10 +1784,6 @@ input, select, textarea, button { font-family: inherit; }
 
   .hf-nav {
     display: none;
-  }
-
-  .hf-human-topbar {
-    flex-wrap: wrap;
   }
 
   .hf-prompt-footer {

@@ -16,7 +16,6 @@ const schema = z.object({
   LIFI_INTEGRATOR: z.preprocess(emptyToUndefined, z.string().optional()),
   LIFI_FEE: z.preprocess(emptyToUndefined, z.coerce.number().optional()),
   LIFI_SLIPPAGE: z.coerce.number().default(0.005),
-  RELAY_API_BASE_URL: z.string().default('https://api.relay.link'),
   DEBRIDGE_API_BASE_URL: z.string().default('https://dln.debridge.finance'),
   DEBRIDGE_ACCESS_TOKEN: z.preprocess(emptyToUndefined, z.string().optional()),
   DEBRIDGE_REFERRAL_CODE: z.preprocess(emptyToUndefined, z.coerce.number().optional()),

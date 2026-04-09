@@ -16,6 +16,7 @@ const createSwapSchema = z.object({
   fromTokenSymbol: z.string().min(2),
   toTokenSymbol: z.string().min(2),
   amount: z.string().min(1),
+  volumeUsd: z.number().nonnegative().optional(),
   txHash: z.string().regex(TX_HASH_REGEX).optional(),
   status: z.string().optional(),
   metadata: z.unknown().optional()
@@ -67,6 +68,7 @@ router.post('/swaps', async (req, res) => {
           fromTokenSymbol: payload.fromTokenSymbol,
           toTokenSymbol: payload.toTokenSymbol,
           amount: payload.amount,
+          ...(payload.volumeUsd != null && { volumeUsd: payload.volumeUsd }),
           status: payload.status ?? 'submitted',
           metadata: payload.metadata
         }

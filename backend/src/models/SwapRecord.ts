@@ -10,6 +10,7 @@ const swapRecordSchema = new Schema(
     fromTokenSymbol: { type: String, required: true },
     toTokenSymbol: { type: String, required: true },
     amount: { type: String, required: true },
+    volumeUsd: { type: Number },
     txHash: { type: String, lowercase: true },
     status: { type: String, default: 'quote-created' },
     metadata: { type: Schema.Types.Mixed }

@@ -18,7 +18,17 @@
       "WebFetch(domain:api.squidrouter.com)",
       "Bash(sed -i '' 's/box-shadow: 0 1px 4px rgba\\(0,0,0,0.04\\)/box-shadow: 0 1px 4px rgba\\(50,67,94,0.07\\)/g' /Users/promitsaha/Desktop/hopfast.xyz/frontend/src/index.css)",
       "Bash(sed -i '' 's/box-shadow: 0 2px 8px rgba\\(0,0,0,0.08\\)/box-shadow: 0 2px 8px rgba\\(50,67,94,0.10\\)/g' /Users/promitsaha/Desktop/hopfast.xyz/frontend/src/index.css)",
-      "Bash(sed -i '' 's/background: rgba\\(0,0,0,0.25\\)/background: rgba\\(50,67,94,0.18\\)/g' /Users/promitsaha/Desktop/hopfast.xyz/frontend/src/index.css)"
+      "Bash(sed -i '' 's/background: rgba\\(0,0,0,0.25\\)/background: rgba\\(50,67,94,0.18\\)/g' /Users/promitsaha/Desktop/hopfast.xyz/frontend/src/index.css)",
+      "Bash(npx vite:*)",
+      "Bash(curl -s \"https://api.coingecko.com/api/v3/simple/price?ids=ethereum,binancecoin,usd-coin,tether,dai,wrapped-bitcoin,bitcoin,coinbase-wrapped-btc,binance-usd,polygon-ecosystem-token,monad&vs_currencies=usd\")",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -sL \"https://assets.coingecko.com/coins/images/34057/small/VIRTUAL.jpg\" -o /Users/promitsaha/Desktop/hopfast.xyz/frontend/public/token-icons/virtual.jpg)",
+      "Bash(curl -sL \"https://assets.coingecko.com/coins/images/34057/large/VIRTUAL.jpg\" -o /Users/promitsaha/Desktop/hopfast.xyz/frontend/public/token-icons/virtual.jpg)",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/assets/0x0b3e328455c4059EEb9e3f84b5543F74E24e7020/logo.png\" -o /Users/promitsaha/Desktop/hopfast.xyz/frontend/public/token-icons/virtual.png)",
+      "Bash(curl -sL \"https://tokens.1inch.io/0x0b3e328455c4059eeb9e3f84b5543f74e24e7020.png\" -o /Users/promitsaha/Desktop/hopfast.xyz/frontend/public/token-icons/virtual.png)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('logoURI',''\\)\\)\")",
+      "Bash(curl -s \"https://li.quest/v1/token?chain=8453&token=0x0b3e328455c4059EEb9e3f84b5543F74E24e7020\")",
+      "Bash(curl -sL --user-agent \"Mozilla/5.0\" \"https://coin-images.coingecko.com/coins/images/34057/large/VIRTUAL.jpg\" -o /Users/promitsaha/Desktop/hopfast.xyz/frontend/public/token-icons/virtual.jpg)"
     ]
   }
 }

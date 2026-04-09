@@ -14,7 +14,7 @@ export interface QuoteRequest {
 
 export interface QuoteResult {
   id: string;
-  provider: 'lifi-api' | 'relay-api' | 'debridge-api' | 'squid-api' | 'mock';
+  provider: 'lifi-api' | 'debridge-api' | 'squid-api' | 'mock';
   route: string;
   feeUsd: number;
   feePercent: number;
@@ -109,7 +109,7 @@ async function fetchQuoteFromBackend(payload: Record<string, unknown>, provider:
 
 export async function getSwapQuote(
   request: QuoteRequest,
-  provider: 'lifi' | 'relay' | 'debridge' | 'squid' = 'lifi'
+  provider: 'lifi' | 'debridge' | 'squid' = 'lifi'
 ): Promise<QuoteResult> {
   if (request.fromChain === request.toChain && request.fromTokenSymbol === request.toTokenSymbol) {
     throw new Error('Source and destination tokens must be different for a same-chain swap.');
@@ -200,7 +200,7 @@ export async function getSwapQuote(
 
     return {
       id: quote.id,
-      provider: provider === 'relay' ? 'relay-api' : provider === 'debridge' ? 'debridge-api' : provider === 'squid' ? 'squid-api' : 'lifi-api',
+      provider: provider === 'debridge' ? 'debridge-api' : provider === 'squid' ? 'squid-api' : 'lifi-api',
       route,
       feeUsd: numberFromUnknown(quote.feeUsd, 0),
       feePercent: numberFromUnknown(quote.feePercent, 0),

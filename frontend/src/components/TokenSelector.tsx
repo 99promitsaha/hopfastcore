@@ -10,6 +10,10 @@ interface TokenSelectorProps {
   chains: ChainOption[];
   onSelectToken: (symbol: string) => void;
   onSelectChain: (chainKey: string) => void;
+  /** Controlled: whether the chain modal is open (managed by parent) */
+  chainModalOpen: boolean;
+  /** Called when the chain modal should close */
+  onChainModalClose: () => void;
   /** Map of lowercase token address → formatted balance string */
   balances?: Record<string, string>;
 }
@@ -22,10 +26,11 @@ export function TokenSelector({
   chains,
   onSelectToken,
   onSelectChain,
+  chainModalOpen,
+  onChainModalClose,
   balances
 }: TokenSelectorProps) {
   const [showTokenModal, setShowTokenModal] = useState(false);
-  const [showChainModal, setShowChainModal] = useState(false);
   const [tokenSearch, setTokenSearch] = useState('');
   const normalizedSearch = tokenSearch.trim().toLowerCase();
   const filteredTokens = normalizedSearch
@@ -52,22 +57,6 @@ export function TokenSelector({
           />
           {selectedToken.symbol}
           <ChevronDown size={12} />
-        </button>
-
-        <button
-          className="hf-chain-badge"
-          onClick={() => setShowChainModal(true)}
-          aria-label={`Select ${label} chain`}
-        >
-          <img
-            src={chain.logoURI}
-            alt={chain.name}
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
-          />
-          {chain.name}
-          <ChevronDown size={10} />
         </button>
       </div>
 
@@ -136,8 +125,8 @@ export function TokenSelector({
       )}
 
       {/* Chain Selection Modal */}
-      {showChainModal && (
-        <div className="hf-dropdown-overlay" onClick={() => setShowChainModal(false)}>
+      {chainModalOpen && (
+        <div className="hf-dropdown-overlay" onClick={onChainModalClose}>
           <div
             className="hf-dropdown-panel hf-fadeup"
             onClick={(e) => e.stopPropagation()}
@@ -146,7 +135,7 @@ export function TokenSelector({
               <h3>Select Network</h3>
               <button
                 className="hf-dropdown-close"
-                onClick={() => setShowChainModal(false)}
+                onClick={onChainModalClose}
               >
                 <X size={18} />
               </button>
@@ -160,7 +149,7 @@ export function TokenSelector({
                   }`}
                   onClick={() => {
                     onSelectChain(c.key);
-                    setShowChainModal(false);
+                    onChainModalClose();
                   }}
                 >
                   <img
@@ -172,7 +161,6 @@ export function TokenSelector({
                   />
                   <div className="hf-dropdown-item-info">
                     <strong>{c.name}</strong>
-                    <span>Chain ID: {c.chainId}</span>
                   </div>
                 </button>
               ))}

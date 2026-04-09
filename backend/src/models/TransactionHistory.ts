@@ -11,6 +11,7 @@ const transactionHistorySchema = new Schema(
     fromTokenSymbol: { type: String, required: true },
     toTokenSymbol: { type: String, required: true },
     amount: { type: String, required: true },
+    volumeUsd: { type: Number },
     status: { type: String, default: 'submitted' },
     metadata: { type: Schema.Types.Mixed }
   },
