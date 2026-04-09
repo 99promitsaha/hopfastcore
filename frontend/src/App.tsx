@@ -487,6 +487,12 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWalletAddress]);
 
+  // Kill countdown whenever quotes are wiped (back navigation, chain change, amount clear, etc.)
+  useEffect(() => {
+    const hasAnyQuote = LIVE_PROVIDERS.some((p) => quotes[p] != null);
+    if (!hasAnyQuote) setQuoteCountdown(null);
+  }, [quotes]);
+
   // Countdown timer — ticks every second after quotes are fetched
   useEffect(() => {
     if (quoteCountdown == null || quoteCountdown <= 0) {
