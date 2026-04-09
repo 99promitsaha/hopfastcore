@@ -1703,6 +1703,71 @@ input, select, textarea, button { font-family: inherit; }
   }
 }
 
+/* ─── Quote Refresh Dynamic Island ───────────────────── */
+.hf-quote-island {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem 0.3rem 0.4rem;
+  margin: 0 auto 0.9rem;
+  border-radius: 999px;
+  background: rgba(50, 67, 94, 0.06);
+  border: 1px solid rgba(50, 67, 94, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  cursor: default;
+  user-select: none;
+  transition: all 0.3s ease;
+}
+
+.hf-quote-island:hover {
+  background: rgba(50, 67, 94, 0.09);
+  border-color: rgba(245, 167, 202, 0.25);
+}
+
+.hf-quote-island-ring {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  transform: rotate(-90deg);
+}
+
+.hf-quote-island-ring-track {
+  stroke: rgba(50, 67, 94, 0.08);
+}
+
+.hf-quote-island-ring-fill {
+  stroke: var(--hf-primary);
+  transition: stroke-dashoffset 1s linear;
+}
+
+.hf-quote-island-icon {
+  flex-shrink: 0;
+  color: var(--hf-text-secondary);
+  animation: islandIconSpin 8s linear infinite;
+}
+
+@keyframes islandIconSpin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.hf-quote-island-text {
+  font-family: var(--hf-font-headline);
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--hf-text-secondary);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.hf-quote-island-text strong {
+  font-weight: 800;
+  font-family: var(--hf-mono);
+  color: var(--hf-text-primary);
+  font-size: 0.64rem;
+}
+
 /* ─── History Modal ──────────────────────────────────── */
 .hf-history-modal {
   width: min(480px, calc(100vw - 2rem));

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowUpDown, Bot, Check, CheckCircle2, ExternalLink,
-  Info, Loader2, Radio, UserRound, X, Zap
+  Info, Loader2, Radio, RefreshCw, UserRound, X, Zap
 } from 'lucide-react';
 import {
   DemoWalletConnector, PrivyWalletConnector, usePrivyAuth,
@@ -38,6 +38,7 @@ const DEFAULT_DRAFT: SwapDraft = {
 };
 
 const DEBOUNCE_MS = 1000;
+const QUOTE_REFRESH_INTERVAL_S = 30;
 
 const BLOCK_EXPLORER: Record<ChainKey, string> = {
   ethereum: 'https://etherscan.io/tx/',
@@ -205,6 +206,8 @@ function App() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState('');
+  const [quoteCountdown, setQuoteCountdown] = useState<number | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval>>();
   const [historyRecords, setHistoryRecords] = useState<UserTransactionRecord[]>([]);
 
   const bestQuote = useMemo((): QuoteResult | null => {
@@ -428,8 +431,11 @@ function App() {
 
     setQuotingProviders(new Set(LIVE_PROVIDERS));
     setError('');
+    // Reset countdown while quoting
+    setQuoteCountdown(null);
 
     const walletAddr = activeWalletAddress;
+    let resolvedCount = 0;
 
     LIVE_PROVIDERS.forEach(async (provider) => {
       try {
@@ -438,9 +444,14 @@ function App() {
       } catch {
         setQuotes((prev) => ({ ...prev, [provider]: null }));
       } finally {
+        resolvedCount++;
         setQuotingProviders((prev) => {
           const next = new Set(prev);
           next.delete(provider);
+          // Start countdown when all providers have resolved
+          if (next.size === 0 && resolvedCount === LIVE_PROVIDERS.length) {
+            setQuoteCountdown(QUOTE_REFRESH_INTERVAL_S);
+          }
           return next;
         });
       }
@@ -467,14 +478,26 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWalletAddress]);
 
-  // Auto-refresh every 30s
+  // Countdown timer — ticks every second after quotes are fetched
   useEffect(() => {
-    if (view !== 'human') return;
-    const interval = setInterval(() => {
-      if (isValidSwapInput(draftRef.current) && !isExecuting) fetchQuote(draftRef.current);
-    }, 30_000);
-    return () => clearInterval(interval);
-  }, [view, isExecuting, fetchQuote]);
+    if (quoteCountdown == null || quoteCountdown <= 0) {
+      if (countdownRef.current) clearInterval(countdownRef.current);
+      return;
+    }
+    countdownRef.current = setInterval(() => {
+      setQuoteCountdown((prev) => {
+        if (prev == null || prev <= 1) {
+          // Time's up — trigger a refresh
+          if (isValidSwapInput(draftRef.current) && !isExecuting) {
+            fetchQuote(draftRef.current);
+          }
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
+  }, [quoteCountdown, isExecuting, fetchQuote]);
 
   // Load user's transaction history when panel is opened
   useEffect(() => {
@@ -848,6 +871,39 @@ function App() {
 
                   <h3 className="hf-swap-title">Hop. <span>At Light Speed.</span></h3>
                   <p className="hf-swap-sub">We show you the best ones. You just hit swap. At zero extra fees.</p>
+
+                  {/* ── Dynamic Island: Quote Refresh Countdown ── */}
+                  <AnimatePresence>
+                    {quoteCountdown != null && quoteCountdown > 0 && !isQuoting && (
+                      <motion.div
+                        className="hf-quote-island"
+                        initial={{ opacity: 0, y: -8, scale: 0.92 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -6, scale: 0.95 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                      >
+                        <svg className="hf-quote-island-ring" viewBox="0 0 24 24">
+                          <circle
+                            className="hf-quote-island-ring-track"
+                            cx="12" cy="12" r="10"
+                            fill="none" strokeWidth="2"
+                          />
+                          <circle
+                            className="hf-quote-island-ring-fill"
+                            cx="12" cy="12" r="10"
+                            fill="none" strokeWidth="2.5"
+                            strokeDasharray={2 * Math.PI * 10}
+                            strokeDashoffset={2 * Math.PI * 10 * (1 - quoteCountdown / QUOTE_REFRESH_INTERVAL_S)}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <RefreshCw size={10} className="hf-quote-island-icon" />
+                        <span className="hf-quote-island-text">
+                          Quotes refresh in <strong>{quoteCountdown}s</strong>
+                        </span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {/* ── You Pay ─────────── */}
                   <div className="hf-field-group">
