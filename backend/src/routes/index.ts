@@ -5,6 +5,7 @@ import swapsRoutes from './swaps.routes.js';
 import transactionsRoutes from './transactions.routes.js';
 import walletsRoutes from './wallets.routes.js';
 import statusRoutes from './status.routes.js';
+import earnRoutes from './earn.routes.js';
 
 const router = Router();
 
@@ -14,5 +15,6 @@ router.use('/', swapsRoutes);
 router.use('/', transactionsRoutes);
 router.use('/', walletsRoutes);
 router.use('/', statusRoutes);
+router.use('/', earnRoutes);
 
 export default router;

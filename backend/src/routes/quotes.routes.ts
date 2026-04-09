@@ -31,6 +31,15 @@ router.post('/quotes', quoteLimiter, async (req, res) => {
 
   const provider = requestedProvider ?? 'lifi';
 
+  // Basic schema validation
+  const { srcChainKey, dstChainKey, srcTokenAddress, dstTokenAddress, amount } = req.body ?? {};
+  if (!srcTokenAddress || !dstTokenAddress || !amount) {
+    return res.status(400).json({ error: 'Missing required fields: srcTokenAddress, dstTokenAddress, amount.' });
+  }
+  if (typeof amount !== 'string' || !/^\d+$/.test(amount)) {
+    return res.status(400).json({ error: 'Amount must be a numeric string in smallest token units.' });
+  }
+
   try {
     let quote:
       | Awaited<ReturnType<typeof requestLiFiQuote>>
@@ -59,8 +68,11 @@ router.post('/quotes', quoteLimiter, async (req, res) => {
 
     return res.json(quote);
   } catch (error) {
-    return res.status(502).json({
-      error: error instanceof Error ? error.message : `Could not fetch quote from ${provider}.`
+    const isClient = error instanceof Error && /missing|invalid|unsupported/i.test(error.message);
+    return res.status(isClient ? 400 : 502).json({
+      error: isClient
+        ? error.message
+        : `Quote request to ${provider} failed. Please try again.`
     });
   }
 });

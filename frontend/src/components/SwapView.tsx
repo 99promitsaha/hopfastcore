@@ -161,13 +161,12 @@ export function SwapView({
     TX_STAGES.findIndex((s) => s.key === stage);
 
   return (
-    <motion.main
-      key="human"
-      initial={{ opacity: 0, y: 18 }}
+    <motion.div
+      key="swap"
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.24 }}
-      className="hf-content"
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.18 }}
     >
       <div className="hf-fadeup hf-swap-wrap">
         <div className="hf-swap-card">
@@ -194,11 +193,12 @@ export function SwapView({
           </button>
 
           <h3 className="hf-swap-title">Hop. <span>At Light Speed 🐰</span></h3>
-          <p className="hf-swap-sub">
-            {draft.fromChain === draft.toChain
-              ? 'Swap tokens on the same chain. Best DEX route, zero extra fees.'
-              : 'We get best quotes. You hit swap.'}
-          </p>
+          <div className="hf-earn-powered">
+            Powered by
+            <img src="/providers/lifi.png" alt="LI.FI" className="hf-earn-powered-logo" />
+            <img src="/providers/squid.ico" alt="Squid" className="hf-earn-powered-logo" />
+            <img src="/providers/debridge.png" alt="deBridge" className="hf-earn-powered-logo" />
+          </div>
 
           {/* Quote Refresh Countdown */}
           <AnimatePresence>
@@ -534,6 +534,6 @@ export function SwapView({
           )}
         </div>
       </div>
-    </motion.main>
+    </motion.div>
   );
 }

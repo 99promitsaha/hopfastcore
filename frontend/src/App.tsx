@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   DemoWalletConnector, PrivyWalletConnector, usePrivyAuth,
   type PrivyWalletBridge
@@ -10,6 +10,7 @@ import { computeUsdValue } from './services/priceService';
 import { LandingView } from './components/LandingView';
 import { AgentView } from './components/AgentView';
 import { SwapView } from './components/SwapView';
+import { EarnView } from './components/EarnView';
 import { TransactionHistoryModal } from './components/TransactionHistoryModal';
 import { CHAIN_BY_KEY } from './lib/chains';
 import { usePrices } from './hooks/usePrices';
@@ -18,15 +19,17 @@ import { useSwapQuotes } from './hooks/useSwapQuotes';
 import { useSwapExecution } from './hooks/useSwapExecution';
 import { useTransactionHistory } from './hooks/useTransactionHistory';
 import { DEFAULT_DRAFT, HAS_PRIVY } from './constants';
-import type { EntryView, SwapDraft } from './types';
+import type { EntryView, HumanTab, SwapDraft } from './types';
 
 function App() {
   const [view, setView] = useState<EntryView>('landing');
+  const [humanTab, setHumanTab] = useState<HumanTab>('swap');
   const pendingLogin = useRef(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [walletBridge, setWalletBridge] = useState<PrivyWalletBridge | null>(null);
   const [draft, setDraft] = useState<SwapDraft>(DEFAULT_DRAFT);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
 
   const privyAuth = usePrivyAuth();
   const activeWalletAddress = walletBridge?.address ?? walletAddress;
@@ -168,34 +171,73 @@ function App() {
         )}
 
         {view === 'human' && (
-          <SwapView
-            draft={draft}
-            setDraft={setDraft}
-            quotes={quotes}
-            quotingProviders={quotingProviders}
-            retryingProviders={retryingProviders}
-            selectedProvider={selectedProvider}
-            setSelectedProvider={setSelectedProvider}
-            quoteCountdown={quoteCountdown}
-            isQuoting={isQuoting}
-            bestQuote={bestQuote}
-            fetchQuote={fetchQuote}
-            triggerFetchImmediate={triggerFetchImmediate}
-            prices={prices}
-            tokenBalances={tokenBalances}
-            formattedSourceBalances={formattedSourceBalances}
-            balanceError={balanceError}
-            isRefreshingBalances={isRefreshingBalances}
-            walletBridge={walletBridge}
-            activeWalletAddress={activeWalletAddress}
-            isExecuting={isExecuting}
-            txStatus={txStatus}
-            error={error}
-            executeSwap={handleExecuteSwap}
-            onBack={handleBack}
-            onToggleHistory={() => setHistoryOpen((prev) => !prev)}
-            onTxStatusClear={clearTxStatus}
-          />
+          <motion.main
+            key="human"
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.24 }}
+            className="hf-content"
+          >
+            {/* Tab switcher */}
+            <div className="hf-human-tabs-wrap">
+              <div className="hf-tabs">
+                <button
+                  className={`hf-tab ${humanTab === 'swap' ? 'hf-tab-active' : ''}`}
+                  onClick={() => setHumanTab('swap')}
+                >
+                  Swap
+                </button>
+                <button
+                  className={`hf-tab ${humanTab === 'earn' ? 'hf-tab-active' : ''}`}
+                  onClick={() => setHumanTab('earn')}
+                >
+                  Earn
+                </button>
+              </div>
+            </div>
+
+            <AnimatePresence mode="wait">
+              {humanTab === 'swap' && (
+                <SwapView
+                  draft={draft}
+                  setDraft={setDraft}
+                  quotes={quotes}
+                  quotingProviders={quotingProviders}
+                  retryingProviders={retryingProviders}
+                  selectedProvider={selectedProvider}
+                  setSelectedProvider={setSelectedProvider}
+                  quoteCountdown={quoteCountdown}
+                  isQuoting={isQuoting}
+                  bestQuote={bestQuote}
+                  fetchQuote={fetchQuote}
+                  triggerFetchImmediate={triggerFetchImmediate}
+                  prices={prices}
+                  tokenBalances={tokenBalances}
+                  formattedSourceBalances={formattedSourceBalances}
+                  balanceError={balanceError}
+                  isRefreshingBalances={isRefreshingBalances}
+                  walletBridge={walletBridge}
+                  activeWalletAddress={activeWalletAddress}
+                  isExecuting={isExecuting}
+                  txStatus={txStatus}
+                  error={error}
+                  executeSwap={handleExecuteSwap}
+                  onBack={handleBack}
+                  onToggleHistory={() => setHistoryOpen((prev) => !prev)}
+                  onTxStatusClear={clearTxStatus}
+                />
+              )}
+
+              {humanTab === 'earn' && (
+                <EarnView
+                  walletBridge={walletBridge}
+                  activeWalletAddress={activeWalletAddress}
+                  onBack={handleBack}
+                />
+              )}
+            </AnimatePresence>
+          </motion.main>
         )}
       </AnimatePresence>
 
@@ -210,11 +252,103 @@ function App() {
         />
       )}
 
+      {/* Privacy Policy Modal */}
+      {privacyOpen && (
+        <div className="hf-privacy-overlay" onClick={() => setPrivacyOpen(false)}>
+          <div className="hf-privacy-card" onClick={(e) => e.stopPropagation()}>
+            <button className="hf-earn-detail-close" onClick={() => setPrivacyOpen(false)}>✕</button>
+            <h2 className="hf-privacy-title">Privacy Policy</h2>
+            <p className="hf-privacy-updated">Last updated: April 9, 2026</p>
+
+            <div className="hf-privacy-body">
+              <h3>1. Introduction</h3>
+              <p>
+                HopFast (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) is a decentralized finance (DeFi) aggregator interface
+                that enables users to swap tokens across blockchains and deposit into yield-bearing vaults.
+                This Privacy Policy explains how we handle information when you use our application at hopfast.xyz.
+              </p>
+
+              <h3>2. Information We Collect</h3>
+              <p><strong>Wallet Addresses:</strong> When you connect your wallet, we receive your public blockchain address. This is inherently public on-chain data and is used solely to facilitate transactions and display your positions.</p>
+              <p><strong>Transaction Data:</strong> We store records of earn deposits you execute through our platform (vault address, token, amount, and transaction hash) in our database to display your position history. This data is also publicly available on the blockchain.</p>
+              <p><strong>No Personal Data:</strong> We do not collect names, email addresses, phone numbers, IP addresses, or any personally identifiable information (PII). We do not require account registration.</p>
+
+              <h3>3. How We Use Your Information</h3>
+              <p>The limited data we collect is used exclusively to:</p>
+              <ul>
+                <li>Display your earn positions and transaction history within the app</li>
+                <li>Facilitate token swaps and earn deposits through third-party protocols</li>
+                <li>Improve the functionality and reliability of our service</li>
+              </ul>
+
+              <h3>4. Third-Party Services</h3>
+              <p>
+                HopFast integrates with third-party DeFi protocols and aggregators including but not limited to
+                LI.FI, Squid Router, and deBridge. When you execute a swap or deposit, your transaction is routed
+                through these services. Each has its own privacy policy and terms of service. We encourage you to
+                review them independently.
+              </p>
+              <p>
+                We also use Privy for wallet authentication. Privy may collect certain device and session data
+                in accordance with their own privacy policy.
+              </p>
+
+              <h3>5. Data Storage &amp; Security</h3>
+              <p>
+                Position records are stored in a secured database. We employ industry-standard security measures
+                to protect stored data. However, no system is 100% secure, and we cannot guarantee absolute security.
+                You can delete your position records from our database at any time via the &quot;Your Positions&quot; tab.
+              </p>
+
+              <h3>6. Cookies &amp; Tracking</h3>
+              <p>
+                We do not use cookies, analytics trackers, or any third-party tracking scripts.
+                We do not serve advertisements.
+              </p>
+
+              <h3>7. Blockchain Data</h3>
+              <p>
+                All transactions executed through HopFast are recorded on public blockchains.
+                Blockchain transactions are permanent and publicly visible. We have no ability to modify
+                or delete on-chain data.
+              </p>
+
+              <h3>8. Your Rights</h3>
+              <p>You have the right to:</p>
+              <ul>
+                <li>Disconnect your wallet at any time</li>
+                <li>Delete your position records from our database</li>
+                <li>Use the application without providing any personal information</li>
+              </ul>
+
+              <h3>9. Children&apos;s Privacy</h3>
+              <p>
+                HopFast is not intended for use by individuals under the age of 18.
+                We do not knowingly collect data from minors.
+              </p>
+
+              <h3>10. Changes to This Policy</h3>
+              <p>
+                We may update this Privacy Policy from time to time. Changes will be reflected on this page
+                with an updated revision date. Continued use of the application constitutes acceptance
+                of the revised policy.
+              </p>
+
+              <h3>11. Contact</h3>
+              <p>
+                For questions or concerns about this Privacy Policy, reach out via
+                Telegram: <a href="https://t.me/promitsaha" target="_blank" rel="noopener noreferrer">@promitsaha</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <footer className="hf-footer">
         <div>
-          <a href="https://t.me/PersistenceOneChat" target="_blank" rel="noopener noreferrer">Support</a>
-          <a href="https://persistence.one/privacy?lang=en" target="_blank" rel="noopener noreferrer">Privacy</a>
+          <a href="https://t.me/promitsaha" target="_blank" rel="noopener noreferrer">Support</a>
+          <button className="hf-footer-link" onClick={() => setPrivacyOpen(true)}>Privacy</button>
         </div>
         <p>© 2026 HopFast</p>
       </footer>

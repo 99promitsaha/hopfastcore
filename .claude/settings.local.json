@@ -28,7 +28,31 @@
       "Bash(curl -sL \"https://tokens.1inch.io/0x0b3e328455c4059eeb9e3f84b5543f74e24e7020.png\" -o /Users/promitsaha/Desktop/hopfast.xyz/frontend/public/token-icons/virtual.png)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('logoURI',''\\)\\)\")",
       "Bash(curl -s \"https://li.quest/v1/token?chain=8453&token=0x0b3e328455c4059EEb9e3f84b5543F74E24e7020\")",
-      "Bash(curl -sL --user-agent \"Mozilla/5.0\" \"https://coin-images.coingecko.com/coins/images/34057/large/VIRTUAL.jpg\" -o /Users/promitsaha/Desktop/hopfast.xyz/frontend/public/token-icons/virtual.jpg)"
+      "Bash(curl -sL --user-agent \"Mozilla/5.0\" \"https://coin-images.coingecko.com/coins/images/34057/large/VIRTUAL.jpg\" -o /Users/promitsaha/Desktop/hopfast.xyz/frontend/public/token-icons/virtual.jpg)",
+      "WebFetch(domain:lifi.notion.site)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(ls /Users/promitsaha/Desktop/hopfast.xyz/backend/.env*)",
+      "Bash(ls /Users/promitsaha/Desktop/hopfast.xyz/frontend/.env*)",
+      "Bash(npm run:*)",
+      "WebFetch(domain:docs.li.fi)",
+      "Bash(curl -s 'https://earn.li.fi/v1/earn/portfolio/0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045/positions')",
+      "Bash(curl -s 'https://earn.li.fi/v1/earn/vaults?chainId=8453&limit=2&sortBy=tvl')",
+      "Bash(curl -s 'https://earn.li.fi/v1/earn/portfolio/0x1234567890123456789012345678901234567890/positions')",
+      "Bash(grep -rn '$where\\\\|$function\\\\|$eval' /Users/promitsaha/Desktop/hopfast.xyz/backend/src/)",
+      "Bash(curl -s -w \"\\\\nHTTP_STATUS: %{http_code}\" \"https://earn.li.fi/v1/earn/portfolio/0x0000000000000000000000000000000000000001/positions\")",
+      "Bash(curl -s -w \"\\\\nHTTP_STATUS: %{http_code}\" \"https://earn.li.fi/v1/earn\")",
+      "Bash(curl -s -w \"\\\\nHTTP_STATUS: %{http_code}\" \"https://earn.li.fi/v1/earn/vaults?chainId=8453&protocol=aave-v3&limit=2\")",
+      "Bash(curl -s -w \"\\\\nHTTP_STATUS: %{http_code}\" \"https://li.quest/v1/token/balances?walletAddress=0x0000000000000000000000000000000000000001&chainId=8453\")",
+      "Bash(curl -s \"https://earn.li.fi/v1/earn/vaults?chainId=8453&protocol=aave-v3&asset=USDC&limit=5\")",
+      "Bash(curl -s \"https://earn.li.fi/v1/earn/vaults?chainId=8453&protocol=aave-v3&asset=USDC&limit=1\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\)['data'][0]; print\\(json.dumps\\({k:d[k] for k in ['name','protocol','underlyingTokens','tags']}, indent=2\\)\\)\")",
+      "Bash(curl -s \"https://earn.li.fi/v1/earn/protocols\")",
+      "Bash(curl -sI \"https://icons.llamao.fi/icons/protocols/aave-v3\")",
+      "Bash(curl -sI \"https://icons.llamao.fi/icons/protocols/morpho\")",
+      "Bash(curl -sI \"https://icons.llamao.fi/icons/protocols/euler\")",
+      "Bash(curl -sI \"https://icons.llamao.fi/icons/protocols/pendle\")",
+      "Bash(curl -sI \"https://icons.llamao.fi/icons/tokens/8453/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913\")",
+      "Bash(curl -sI \"https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/assets/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913/logo.png\")"
     ]
   }
 }

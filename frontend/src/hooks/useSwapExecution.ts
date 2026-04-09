@@ -4,7 +4,7 @@ import type { QuoteResult } from '../services/quoteService';
 import { pollTransactionStatus, stageToProgress, type TxStatusResult } from '../services/transactionStatusService';
 import { parseUnits } from '../lib/amount';
 import { ensureTokenApproval, isNativeToken } from '../lib/erc20';
-import { toHexQuantity } from '../lib/swap';
+import { toHexQuantity, validateTransactionRequest } from '../lib/swap';
 import { API_BASE_URL } from '../constants';
 import type { ChainKey } from '../lib/chains';
 import type { SwapDraft, TxStatus } from '../types';
@@ -106,6 +106,12 @@ export function useSwapExecution(
 
     if (!bestQuote.transactionRequest) {
       setError('No executable transaction found in this quote.');
+      return;
+    }
+
+    const txValidationError = validateTransactionRequest(bestQuote.transactionRequest);
+    if (txValidationError) {
+      setError(txValidationError);
       return;
     }
 

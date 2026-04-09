@@ -43,3 +43,23 @@ export function isValidSwapInput(draft: SwapDraft): boolean {
   const amount = Number(draft.amount);
   return Number.isFinite(amount) && amount > 0;
 }
+
+const ETH_ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
+
+/**
+ * Validates that a transaction request from an external API has safe fields
+ * before the user signs it. Prevents malicious `to` addresses or missing data.
+ */
+export function validateTransactionRequest(tx: {
+  to?: string;
+  data?: string;
+  value?: string;
+}): string | null {
+  if (!tx.to || !ETH_ADDRESS_RE.test(tx.to)) {
+    return 'Invalid transaction target address.';
+  }
+  if (!tx.data || tx.data.length < 10) {
+    return 'Transaction data is missing or malformed.';
+  }
+  return null; // valid
+}
