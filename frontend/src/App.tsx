@@ -70,6 +70,14 @@ const LIVE_PROVIDERS: ProviderKey[] = IS_PROD
   ? ['lifi', 'squid', 'debridge']
   : ['lifi', 'squid', 'debridge', 'relay'];
 const HISTORY_LIMIT = 50;
+const API_BASE_URL = (import.meta.env.VITE_HOPFAST_API_BASE_URL ?? '').replace(/\/$/, '') || 'http://localhost:8080/api';
+
+const PROVIDER_META: { key: ProviderKey; label: string; logo: string; issues: boolean }[] = [
+  { key: 'lifi',     label: 'LI.FI',    logo: '/providers/lifi.png',     issues: false },
+  { key: 'squid',    label: 'Squid',    logo: '/providers/squid.ico',    issues: false },
+  { key: 'debridge', label: 'deBridge', logo: '/providers/debridge.png', issues: false },
+  { key: 'relay',    label: 'Relay',    logo: '/providers/relay.png',    issues: true  },
+];
 
 function makeBalanceKey(chain: ChainKey, tokenAddress: string): string {
   return `${chain}:${tokenAddress.toLowerCase()}`;
@@ -199,23 +207,23 @@ function App() {
   const [historyError, setHistoryError] = useState('');
   const [historyRecords, setHistoryRecords] = useState<UserTransactionRecord[]>([]);
 
-  // Selected quote: user pick > auto-best (lowest fee)
-  const bestQuote: QuoteResult | null = (() => {
+  const bestQuote = useMemo((): QuoteResult | null => {
     if (selectedProvider && quotes[selectedProvider]) return quotes[selectedProvider]!;
     const available = LIVE_PROVIDERS
       .map((p) => quotes[p])
       .filter((q): q is QuoteResult => q != null);
     if (!available.length) return null;
     return available.reduce((best, q) => (q.feeUsd < best.feeUsd ? q : best));
-  })();
+  }, [selectedProvider, quotes]);
 
   const isQuoting = quotingProviders.size > 0;
 
-  // Privy auth state — always call hook unconditionally
   const privyAuth = usePrivyAuth();
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const quoteAbortRefs = useRef<Partial<Record<ProviderKey, AbortController>>>({});
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
 
   const fromChain = CHAIN_BY_KEY[draft.fromChain];
   const toChain = CHAIN_BY_KEY[draft.toChain];
@@ -262,6 +270,15 @@ function App() {
     && requestedAmountRaw > selectedSourceBalanceRaw;
   const isBalanceUnknown = hasConnectedWallet && selectedSourceBalanceRaw == null;
   const shouldGateForBalanceCheck = hasConnectedWallet && !balanceError && (isRefreshingBalances || isBalanceUnknown);
+
+  // Warn when spending ≥95% of the native gas token — leaves nothing for the tx fee
+  const isGasTokenRisk =
+    hasConnectedWallet
+    && isNativeToken(selectedFromToken.address)
+    && requestedAmountRaw != null
+    && selectedSourceBalanceRaw != null
+    && selectedSourceBalanceRaw > 0n
+    && requestedAmountRaw * 100n >= selectedSourceBalanceRaw * 95n;
 
   // Build formatted balance map for source chain token selector
   const formattedSourceBalances = useMemo(() => {
@@ -398,14 +415,12 @@ function App() {
     }
   }, [activeWalletAddress, tokenBalances]);
 
-  // ── Debounced auto-quote (fetches from all live providers in parallel) ──
   const fetchQuote = useCallback(async (currentDraft: SwapDraft) => {
-    if (!isValidSwapInput(currentDraft) || shouldGateForBalanceCheck || hasInsufficientAmountForDraft(currentDraft)) {
+    if (!isValidSwapInput(currentDraft)) {
       setQuotes({}); setSelectedProvider(null);
       return;
     }
 
-    // Abort any in-flight requests
     LIVE_PROVIDERS.forEach((p) => {
       quoteAbortRefs.current[p]?.abort();
       quoteAbortRefs.current[p] = new AbortController();
@@ -418,10 +433,7 @@ function App() {
 
     LIVE_PROVIDERS.forEach(async (provider) => {
       try {
-        const result = await getSwapQuote(
-          { ...currentDraft, walletAddress: walletAddr },
-          provider
-        );
+        const result = await getSwapQuote({ ...currentDraft, walletAddress: walletAddr }, provider);
         setQuotes((prev) => ({ ...prev, [provider]: result }));
       } catch {
         setQuotes((prev) => ({ ...prev, [provider]: null }));
@@ -433,30 +445,36 @@ function App() {
         });
       }
     });
-  }, [activeWalletAddress, hasInsufficientAmountForDraft, shouldGateForBalanceCheck]);
+  }, [activeWalletAddress]);
 
+  // Debounce only for amount typing — chain/token changes trigger fetchQuote directly
   useEffect(() => {
-    setQuotes({}); setSelectedProvider(null);
-    if (!isValidSwapInput(draft)) return;
-
+    if (!isValidSwapInput(draft)) {
+      setQuotes({}); setSelectedProvider(null);
+      return;
+    }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => fetchQuote(draft), DEBOUNCE_MS);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.amount]);
 
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [draft.amount, draft.fromChain, draft.toChain, draft.fromTokenSymbol, draft.toTokenSymbol, fetchQuote]);
+  // Re-quote when wallet connects so quotes include the wallet address
+  useEffect(() => {
+    if (activeWalletAddress && isValidSwapInput(draftRef.current)) {
+      fetchQuote(draftRef.current);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWalletAddress]);
 
-  // ── Auto-refresh quotes every 30s while on the swap view ──
+  // Auto-refresh every 30s
   useEffect(() => {
     if (view !== 'human') return;
     const interval = setInterval(() => {
-      if (isValidSwapInput(draft) && !isExecuting) {
-        fetchQuote(draft);
-      }
+      if (isValidSwapInput(draftRef.current) && !isExecuting) fetchQuote(draftRef.current);
     }, 30_000);
     return () => clearInterval(interval);
-  }, [view, draft, isExecuting, fetchQuote]);
+  }, [view, isExecuting, fetchQuote]);
 
   // Load user's transaction history when panel is opened
   useEffect(() => {
@@ -505,10 +523,12 @@ function App() {
     }
   }, [privyAuth.authenticated]);
 
-  // ── Real transaction status polling ─────────────────
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [view]);
+
   const statusPollerRef = useRef<{ stop: () => void } | null>(null);
 
-  // Cleanup poller on unmount
   useEffect(() => {
     return () => { statusPollerRef.current?.stop(); };
   }, []);
@@ -538,9 +558,6 @@ function App() {
     );
   };
 
-  // ── Swap execution (Privy-only, never MetaMask) ─────
-  const API_BASE_URL = import.meta.env.VITE_HOPFAST_API_BASE_URL?.replace(/\/$/, '') || 'http://localhost:8080/api';
-
   const recordSwap = async (txHash: string) => {
     if (!walletBridge?.address || !bestQuote?.id) return;
     try {
@@ -562,7 +579,6 @@ function App() {
   };
 
   const executeSwap = async () => {
-    // Strictly require Privy wallet — never fallback to browser wallets
     if (!walletBridge) {
       if (HAS_PRIVY && !privyAuth.authenticated) {
         privyAuth.login();
@@ -590,7 +606,6 @@ function App() {
       await walletBridge.switchChain(fromChain.chainId);
       const provider = await walletBridge.getEthereumProvider();
 
-      // Ensure ERC-20 approval before executing the swap
       const spenderAddress = bestQuote.transactionRequest.to;
       if (spenderAddress && !isNativeToken(selectedFromToken.address)) {
         const requiredAmount = requestedAmountRaw ?? parseUnits(draft.amount, selectedFromToken.decimals);
@@ -610,7 +625,6 @@ function App() {
         value: toHexQuantity(bestQuote.transactionRequest.value) ?? '0x0',
       };
 
-      // EIP-1559 (Relay) vs legacy (LI.FI) gas params
       if (bestQuote.transactionRequest.maxFeePerGas) {
         txParams.maxFeePerGas = toHexQuantity(bestQuote.transactionRequest.maxFeePerGas);
         txParams.maxPriorityFeePerGas = toHexQuantity(bestQuote.transactionRequest.maxPriorityFeePerGas);
@@ -629,7 +643,6 @@ function App() {
       startStatusPolling(txHash, bestQuote.provider, draft.fromChain);
       await recordSwap(txHash);
 
-      // Refresh wallet balances after a short delay so the new on-chain state is reflected
       setTimeout(() => setBalanceRefreshTick((t) => t + 1), 4000);
     } catch (caughtError) {
       setTxStatus((p) => p ? { ...p, stage: 'failed', progress: p.progress } : null);
@@ -639,37 +652,49 @@ function App() {
     }
   };
 
-  // ── Draft helpers ───────────────────────────────────
-  const swapDirections = () => {
-    setDraft((c) => ({
-      ...c,
-      fromChain: c.toChain,
-      toChain: c.fromChain,
-      fromTokenSymbol: resolveToken(c.toChain, c.toTokenSymbol),
-      toTokenSymbol: resolveToken(c.fromChain, c.fromTokenSymbol)
-    }));
+  const triggerFetchImmediate = (next: SwapDraft) => {
     setQuotes({}); setSelectedProvider(null);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (isValidSwapInput(next)) fetchQuote(next);
+  };
+
+  const swapDirections = () => {
+    const next: SwapDraft = {
+      ...draft,
+      fromChain: draft.toChain,
+      toChain: draft.fromChain,
+      fromTokenSymbol: resolveToken(draft.toChain, draft.toTokenSymbol),
+      toTokenSymbol: resolveToken(draft.fromChain, draft.fromTokenSymbol),
+    };
+    setDraft(next);
     setTxStatus(null);
+    triggerFetchImmediate(next);
   };
 
   const updateFromChain = (chain: ChainKey) => {
-    setDraft((c) => {
-      const next = c.toChain === chain ? getAnotherChain(chain) : c.toChain;
-      return { ...c, fromChain: chain, toChain: next,
-        fromTokenSymbol: resolveToken(chain, undefined, c.fromTokenSymbol),
-        toTokenSymbol: resolveToken(next, undefined, c.toTokenSymbol) };
-    });
-    setQuotes({}); setSelectedProvider(null);
+    const toChain = draft.toChain === chain ? getAnotherChain(chain) : draft.toChain;
+    const next: SwapDraft = {
+      ...draft,
+      fromChain: chain,
+      toChain,
+      fromTokenSymbol: resolveToken(chain, undefined, draft.fromTokenSymbol),
+      toTokenSymbol: resolveToken(toChain, undefined, draft.toTokenSymbol),
+    };
+    setDraft(next);
+    triggerFetchImmediate(next);
   };
 
   const updateToChain = (chain: ChainKey) => {
-    setDraft((c) => {
-      const next = c.fromChain === chain ? getAnotherChain(chain) : c.fromChain;
-      return { ...c, fromChain: next, toChain: chain,
-        fromTokenSymbol: resolveToken(next, undefined, c.fromTokenSymbol),
-        toTokenSymbol: resolveToken(chain, undefined, c.toTokenSymbol) };
-    });
-    setQuotes({}); setSelectedProvider(null);
+    const fromChain = draft.fromChain === chain ? getAnotherChain(chain) : draft.fromChain;
+    const next: SwapDraft = {
+      ...draft,
+      fromChain,
+      toChain: chain,
+      fromTokenSymbol: resolveToken(fromChain, undefined, draft.fromTokenSymbol),
+      toTokenSymbol: resolveToken(chain, undefined, draft.toTokenSymbol),
+    };
+    setDraft(next);
+    triggerFetchImmediate(next);
   };
 
   const stageIdx = (stage: TxStage | undefined) =>
@@ -710,7 +735,7 @@ function App() {
                 <span>at light speed.</span>
               </h1>
               <p className="hf-hero-sub">
-                Cross-chain swaps powered by the fastest liquidity routes. Bridge any token across 4+ chains in seconds by comparing quotes from LI.FI, Relay, deBridge &amp; more.
+                Cross-chain swaps powered by the fastest liquidity routes. Bridge any token across 4+ chains in seconds by comparing quotes from LI.FI, Squid, deBridge &amp; more.
               </p>
             </div>
 
@@ -801,9 +826,7 @@ function App() {
               </button>
             </div>
 
-            {/* ── SWAP ─────── */}
-            {(
-              <div className="hf-fadeup" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem' }}>
+            <div className="hf-fadeup hf-swap-wrap">
                 <div className="hf-swap-card">
                   <button
                     className="hf-history-trigger"
@@ -815,26 +838,18 @@ function App() {
                     🕒
                   </button>
 
-                  <h3 className="hf-swap-title">
-                    Cross-Chain <span>Swap</span>
-                  </h3>
-                  <p className="hf-swap-sub">Best routes • Lowest fees • Instant bridging</p>
+                  <h3 className="hf-swap-title">Hop. <span>At Light Speed.</span></h3>
+                  <p className="hf-swap-sub">We show you the best ones. You just hit swap. At zero extra fees.</p>
 
                   {/* ── You Pay ─────────── */}
                   <div className="hf-field-group">
-                    <div className="hf-field-label">
-                      <span className="hf-field-kicker">You pay</span>
-                      {fromUsd && (
-                        <span className="hf-field-usd">≈ ${fromUsd.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      )}
-                    </div>
+                    <span className="hf-field-kicker">You pay</span>
                     <div className="hf-field-row">
                       <input
                         className="hf-amount-input"
                         value={draft.amount}
                         onChange={(e) => {
                           setDraft((c) => ({ ...c, amount: e.target.value }));
-                          setQuotes({}); setSelectedProvider(null);
                           setTxStatus(null);
                         }}
                         inputMode="decimal"
@@ -846,54 +861,41 @@ function App() {
                         tokens={sortedFromTokenOptions}
                         chain={fromChain}
                         chains={CHAINS}
-                        onSelectToken={(s) => { setDraft((c) => ({ ...c, fromTokenSymbol: s })); setQuotes({}); setSelectedProvider(null); }}
+                        onSelectToken={(s) => {
+                          const next = { ...draft, fromTokenSymbol: s };
+                          setDraft(next);
+                          triggerFetchImmediate(next);
+                        }}
                         onSelectChain={(k) => updateFromChain(k as ChainKey)}
                         balances={formattedSourceBalances}
                       />
                     </div>
-                    <div className="hf-balance-row">
-                      {hasConnectedWallet && selectedSourceBalance != null ? (
-                        <>
-                          <span className="hf-balance-hint">
-                            {selectedSourceBalance} {selectedFromToken.symbol}
-                          </span>
-                          <div className="hf-balance-actions">
-                            {isAmountInsufficient && (
-                              <span className="hf-balance-alert">Insufficient</span>
-                            )}
-                            <button
-                              type="button"
-                              className="hf-pct-btn"
-                              onClick={() => {
-                                if (selectedSourceBalanceRaw == null) return;
-                                const half = selectedSourceBalanceRaw / 2n;
-                                const amount = formatUnits(half, selectedFromToken.decimals, selectedFromToken.decimals);
-                                const next = { ...draft, amount };
-                                setDraft(next);
-                                setQuotes({}); setSelectedProvider(null); setTxStatus(null);
-                                if (debounceRef.current) clearTimeout(debounceRef.current);
-                                fetchQuote(next);
-                              }}
-                            >50%</button>
-                            <button
-                              type="button"
-                              className="hf-pct-btn"
-                              onClick={() => {
-                                if (selectedSourceBalanceRaw == null) return;
-                                const amount = formatUnits(selectedSourceBalanceRaw, selectedFromToken.decimals, selectedFromToken.decimals);
-                                const next = { ...draft, amount };
-                                setDraft(next);
-                                setQuotes({}); setSelectedProvider(null); setTxStatus(null);
-                                if (debounceRef.current) clearTimeout(debounceRef.current);
-                                fetchQuote(next);
-                              }}
-                            >MAX</button>
-                          </div>
-                        </>
-                      ) : hasConnectedWallet ? (
-                        <span className="hf-balance-hint" />
-                      ) : null}
+                    <div className="hf-field-foot">
+                      {fromUsd ? (
+                        <span className="hf-field-usd-main">≈ ${fromUsd.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      ) : <span />}
+                      {hasConnectedWallet && selectedSourceBalance != null && (
+                        <div className="hf-balance-actions">
+                          {isAmountInsufficient && <span className="hf-balance-alert">Insufficient</span>}
+                          <span className="hf-balance-hint">{selectedSourceBalance} {selectedFromToken.symbol}</span>
+                          <button type="button" className="hf-pct-btn" onClick={() => {
+                            if (selectedSourceBalanceRaw == null) return;
+                            const next = { ...draft, amount: formatUnits(selectedSourceBalanceRaw / 2n, selectedFromToken.decimals, selectedFromToken.decimals) };
+                            setDraft(next); triggerFetchImmediate(next); setTxStatus(null);
+                          }}>50%</button>
+                          <button type="button" className="hf-pct-btn" onClick={() => {
+                            if (selectedSourceBalanceRaw == null) return;
+                            const next = { ...draft, amount: formatUnits(selectedSourceBalanceRaw, selectedFromToken.decimals, selectedFromToken.decimals) };
+                            setDraft(next); triggerFetchImmediate(next); setTxStatus(null);
+                          }}>MAX</button>
+                        </div>
+                      )}
                     </div>
+                    {isGasTokenRisk && (
+                      <p className="hf-gas-warning">
+                        ⚠ You're spending nearly all your {selectedFromToken.symbol}. Keep some for gas or this transaction will fail.
+                      </p>
+                    )}
                   </div>
 
                   {/* ── Swap Direction ──── */}
@@ -905,12 +907,7 @@ function App() {
 
                   {/* ── You Receive ─────── */}
                   <div className="hf-field-group">
-                    <div className="hf-field-label">
-                      <span className="hf-field-kicker">You receive</span>
-                      {toUsd && (
-                        <span className="hf-field-usd">≈ ${toUsd.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      )}
-                    </div>
+                    <span className="hf-field-kicker">You receive</span>
                     <div className="hf-field-row">
                       <input
                         className="hf-amount-input"
@@ -925,9 +922,18 @@ function App() {
                         tokens={toTokenOptions}
                         chain={toChain}
                         chains={CHAINS}
-                        onSelectToken={(s) => { setDraft((c) => ({ ...c, toTokenSymbol: s })); setQuotes({}); setSelectedProvider(null); }}
+                        onSelectToken={(s) => {
+                          const next = { ...draft, toTokenSymbol: s };
+                          setDraft(next);
+                          triggerFetchImmediate(next);
+                        }}
                         onSelectChain={(k) => updateToChain(k as ChainKey)}
                       />
+                    </div>
+                    <div className="hf-field-foot">
+                      {toUsd ? (
+                        <span className="hf-field-usd-main">≈ ${toUsd.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      ) : <span />}
                     </div>
                   </div>
 
@@ -935,12 +941,7 @@ function App() {
                   <div className="hf-providers-section">
                     <p className="hf-providers-label">Route Providers</p>
                     <div className="hf-providers-list">
-                      {([
-                        { key: 'lifi' as ProviderKey, label: 'LI.FI', logo: '/providers/lifi.png', issues: false },
-                        { key: 'squid' as ProviderKey, label: 'Squid', logo: '/providers/squid.ico', issues: false },
-                        { key: 'debridge' as ProviderKey, label: 'deBridge', logo: '/providers/debridge.png', issues: false },
-                        { key: 'relay' as ProviderKey, label: 'Relay', logo: '/providers/relay.png', issues: true }
-                      ]).map(({ key, label, logo, issues }) => {
+                      {PROVIDER_META.map(({ key, label, logo, issues }) => {
                         const isDisabled = IS_PROD && key === 'relay';
                         const pQuote = quotes[key];
                         const pQuoting = quotingProviders.has(key);
@@ -989,43 +990,37 @@ function App() {
                     </div>
                   </div>
 
-                  {/* ── Inline Quote Details ── */}
-                  {bestQuote && !isQuoting && (
-                    <div className="hf-quote-details hf-fadeup">
-                      <div className="hf-quote-metrics">
-                        <div className="hf-quote-metric">
-                          <div className="hf-quote-metric-label">Best fee</div>
-                          <div className="hf-quote-metric-value">{formatUsd(bestQuote.feeUsd)}</div>
+                  {/* ── Fee summary + action ── */}
+                  {bestQuote && !isQuoting ? (
+                    <>
+                      <div className="hf-fee-summary hf-fadeup">
+                        <div className="hf-fee-row">
+                          <span className="hf-fee-label">Network &amp; route fee</span>
+                          <span className="hf-fee-value">{formatUsd(bestQuote.feeUsd)}</span>
                         </div>
-                        <div className="hf-quote-metric">
-                          <div className="hf-quote-metric-label">Time</div>
-                          <div className="hf-quote-metric-value">~{bestQuote.etaSeconds}s</div>
+                        <div className="hf-fee-row">
+                          <span className="hf-fee-label">HopFast fee</span>
+                          <span className="hf-fee-value hf-fee-free">Free <Check size={10} strokeWidth={3} /></span>
                         </div>
-                        <div className="hf-quote-metric">
-                          <div className="hf-quote-metric-label">Min out</div>
-                          <div className="hf-quote-metric-value">
-                            {bestQuote.destinationAmountMin ?? bestQuote.destinationAmount}
-                          </div>
+                        <div className="hf-fee-row">
+                          <span className="hf-fee-label">Min. received</span>
+                          <span className="hf-fee-value">{bestQuote.destinationAmountMin ?? bestQuote.destinationAmount} · ~{bestQuote.etaSeconds}s</span>
                         </div>
                       </div>
-                    </div>
-                  )}
-
-                  {/* ── Action Button ──── */}
-                  {bestQuote && !isQuoting ? (
-                    <button
-                      className="hf-btn hf-btn-primary hf-btn-wide"
-                      onClick={executeSwap}
-                      disabled={isExecuting || isAmountInsufficient || shouldGateForBalanceCheck}
-                    >
-                      {isExecuting ? (
-                        <><Loader2 size={14} className="hf-spin" /> Executing</>
-                      ) : !walletBridge ? (
-                        <>Connect Wallet to Swap</>
-                      ) : (
-                        <><Zap size={14} /> Execute Swap</>
-                      )}
-                    </button>
+                      <button
+                        className="hf-btn hf-btn-primary hf-btn-wide"
+                        onClick={executeSwap}
+                        disabled={isExecuting || isAmountInsufficient || shouldGateForBalanceCheck}
+                      >
+                        {isExecuting ? (
+                          <><Loader2 size={14} className="hf-spin" /> Bridging…</>
+                        ) : !walletBridge ? (
+                          <>Connect wallet to bridge</>
+                        ) : (
+                          <><Zap size={14} /> Bridge now</>
+                        )}
+                      </button>
+                    </>
                   ) : (
                     <button
                       className="hf-btn hf-btn-primary hf-btn-wide"
@@ -1033,9 +1028,9 @@ function App() {
                       onClick={() => fetchQuote(draft)}
                     >
                       {isQuoting ? (
-                        <><Loader2 size={14} className="hf-spin" /> Getting quote</>
+                        <><Loader2 size={14} className="hf-spin" /> Finding best route…</>
                       ) : (
-                        <><Zap size={14} /> Get Quote</>
+                        <><Zap size={14} /> Get quote</>
                       )}
                     </button>
                   )}
@@ -1094,21 +1089,17 @@ function App() {
                     </div>
                   )}
 
-                  {/* ── Inline messages ── */}
                   {bestQuote?.warning && (
-                    <p className="hf-note hf-note-warning" style={{ marginTop: '0.7rem', width: '100%' }}>{bestQuote.warning}</p>
+                    <p className="hf-note hf-note-warning">{bestQuote.warning}</p>
                   )}
                   {balanceError && (
-                    <p className="hf-note hf-note-warning" style={{ marginTop: '0.7rem', width: '100%' }}>
-                      Balance check warning: {balanceError}
-                    </p>
+                    <p className="hf-note hf-note-warning">Balance check: {balanceError}</p>
                   )}
                   {error && (
-                    <p className="hf-note hf-note-error" style={{ marginTop: '0.7rem', width: '100%' }}>{error}</p>
+                    <p className="hf-note hf-note-error">{error}</p>
                   )}
                 </div>
-              </div>
-            )}
+            </div>
           </motion.main>
         )}
       </AnimatePresence>

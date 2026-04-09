@@ -4,35 +4,52 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Design Tokens (HopFast Brandkit — Light) ───────── */
+/* ─── Design Tokens (HopFast Etheria) ───────────────────── */
 :root {
-  --hf-bg: #FDFBFC;
-  --hf-bg-surface: #f7f5f6;
+  /* Backgrounds — pure white base */
+  --hf-bg: #ffffff;
+  --hf-bg-surface: #f8f9fc;
   --hf-bg-card: #ffffff;
-  --hf-bg-elevated: #f2eff1;
-  --hf-bg-input: #f7f5f6;
-  --hf-border: rgba(0, 0, 0, 0.07);
-  --hf-border-active: rgba(245, 167, 202, 0.4);
-  --hf-text-primary: #1a1a2e;
-  --hf-text-secondary: rgba(26, 26, 46, 0.55);
-  --hf-text-muted: rgba(26, 26, 46, 0.35);
+  --hf-bg-elevated: #f0f2f7;
+  --hf-bg-input: #f8f9fc;
+
+  /* Borders — navy-tinted for premium depth */
+  --hf-border: rgba(50, 67, 94, 0.09);
+  --hf-border-active: rgba(245, 167, 202, 0.55);
+
+  /* Typography — Etheria neutral #32435E */
+  --hf-text-primary: #32435E;
+  --hf-text-secondary: rgba(50, 67, 94, 0.58);
+  --hf-text-muted: rgba(50, 67, 94, 0.36);
+
+  /* Brand palette */
   --hf-primary: #F5A7CA;
   --hf-primary-dark: #e48db3;
-  --hf-primary-glow: rgba(245, 167, 202, 0.20);
-  --hf-primary-text: #6b2a4a;
+  --hf-primary-glow: rgba(245, 167, 202, 0.18);
+  --hf-primary-text: #7a2945;
   --hf-secondary: #96D2F4;
   --hf-secondary-dark: #5ea8d4;
   --hf-tertiary: #3dbc5e;
+  --hf-tertiary-soft: #B4EADB;
+  --hf-neutral: #32435E;
   --hf-warning: #e6930a;
   --hf-error: #dc3545;
-  --hf-gradient-brand: linear-gradient(135deg, #F5A7CA, #e48db3, #F5A7CA);
-  --hf-gradient-brand-wide: linear-gradient(135deg, #F5A7CA, #96D2F4);
-  --hf-gradient-card: linear-gradient(145deg, rgba(245, 167, 202, 0.05), rgba(150, 210, 244, 0.03));
-  --hf-shadow-card: 0 2px 16px rgba(0, 0, 0, 0.05);
-  --hf-shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.08);
+
+  /* Gradients — full Etheria palette */
+  --hf-gradient-brand: linear-gradient(135deg, #F5A7CA 0%, #96D2F4 100%);
+  --hf-gradient-brand-wide: linear-gradient(135deg, #F5A7CA 0%, #B4EADB 50%, #96D2F4 100%);
+  --hf-gradient-card: linear-gradient(145deg, rgba(245, 167, 202, 0.04) 0%, rgba(150, 210, 244, 0.025) 100%);
+
+  /* Shadows — navy-tinted, not black */
+  --hf-shadow-card: 0 1px 3px rgba(50, 67, 94, 0.06), 0 4px 18px rgba(50, 67, 94, 0.06);
+  --hf-shadow-elevated: 0 8px 36px rgba(50, 67, 94, 0.11);
+
+  /* Typography */
   --hf-font-headline: 'Plus Jakarta Sans', 'Be Vietnam Pro', sans-serif;
   --hf-font-body: 'Be Vietnam Pro', 'Plus Jakarta Sans', sans-serif;
   --hf-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Shape */
   --hf-radius: 16px;
   --hf-radius-sm: 12px;
   --hf-radius-xs: 8px;
@@ -61,7 +78,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Soft gradient mesh */
+/* Ambient gradient mesh — Etheria palette, very subtle */
 body::before {
   content: '';
   position: fixed;
@@ -69,15 +86,15 @@ body::before {
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(ellipse 70% 50% at 10% 5%, rgba(245,167,202,0.10), transparent 55%),
-    radial-gradient(ellipse 60% 50% at 90% 85%, rgba(150,210,244,0.08), transparent 55%),
-    radial-gradient(ellipse 40% 35% at 50% 50%, rgba(152,255,152,0.03), transparent 50%);
-  animation: meshShift 20s ease-in-out infinite alternate;
+    radial-gradient(ellipse 65% 45% at 5% 0%,   rgba(245,167,202,0.10), transparent 60%),
+    radial-gradient(ellipse 55% 40% at 95% 90%,  rgba(150,210,244,0.09), transparent 60%),
+    radial-gradient(ellipse 40% 35% at 55% 45%,  rgba(180,234,219,0.05), transparent 55%);
+  animation: meshShift 24s ease-in-out infinite alternate;
 }
 
 @keyframes meshShift {
-  0% { opacity: 1; }
-  50% { opacity: 0.6; }
+  0%   { opacity: 1; }
+  50%  { opacity: 0.65; }
   100% { opacity: 1; }
 }
 
@@ -211,7 +228,7 @@ input, select, textarea, button { font-family: inherit; }
   font-weight: 600;
   transition: all var(--hf-transition);
   white-space: nowrap;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 4px rgba(50,67,94,0.07);
 }
 
 .hf-wallet-pill:hover {
@@ -617,8 +634,13 @@ input, select, textarea, button { font-family: inherit; }
 .hf-swap-sub {
   text-align: center;
   color: var(--hf-text-secondary);
-  font-size: 0.74rem;
-  margin-bottom: 1.2rem;
+  font-size: 0.72rem;
+  line-height: 1.55;
+  margin-top: 0.3rem;
+  margin-bottom: 1.3rem;
+  max-width: 340px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* ─── Token Input Field Group ────────────────────────── */
@@ -662,6 +684,83 @@ input, select, textarea, button { font-family: inherit; }
   display: flex;
   align-items: center;
   gap: 0.6rem;
+}
+
+/* hf-field-foot: sits below the input row — USD value on left, balance/actions on right */
+.hf-field-foot {
+  margin-top: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 1.2rem;
+}
+
+.hf-field-usd-main {
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-family: var(--hf-mono);
+  color: var(--hf-text-secondary);
+  letter-spacing: -0.01em;
+}
+
+.hf-gas-warning {
+  margin-top: 0.45rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #92610a;
+  background: rgba(230, 147, 10, 0.09);
+  border: 1px solid rgba(230, 147, 10, 0.22);
+  border-radius: var(--hf-radius-xs);
+  padding: 0.4rem 0.6rem;
+  line-height: 1.4;
+}
+
+.hf-fee-summary {
+  background: var(--hf-bg-input);
+  border: 1px solid var(--hf-border);
+  border-radius: var(--hf-radius-sm);
+  margin-bottom: 0.5rem;
+  padding: 0.65rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.hf-fee-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.hf-fee-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--hf-text-muted);
+  font-family: var(--hf-font-headline);
+}
+
+.hf-fee-value {
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: var(--hf-mono);
+  color: var(--hf-text-primary);
+}
+
+.hf-fee-free {
+  color: var(--hf-tertiary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.hf-swap-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
 }
 
 .hf-balance-row {
@@ -752,7 +851,7 @@ input, select, textarea, button { font-family: inherit; }
   transition: all var(--hf-transition);
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 4px rgba(50,67,94,0.07);
 }
 
 .hf-token-btn:hover {
@@ -801,7 +900,7 @@ input, select, textarea, button { font-family: inherit; }
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(0,0,0,0.25);
+  background: rgba(50,67,94,0.18);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -945,7 +1044,7 @@ input, select, textarea, button { font-family: inherit; }
   transform: translateX(-50%);
   z-index: 3;
   transition: all 0.35s cubic-bezier(.4,0,.2,1);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 8px rgba(50,67,94,0.10);
 }
 
 .hf-switch-btn:hover {
@@ -1408,9 +1507,10 @@ input, select, textarea, button { font-family: inherit; }
   border-radius: var(--hf-radius-xs);
   padding: 0.6rem 0.75rem;
   font-size: 0.72rem;
+  margin-top: 0.7rem;
+  width: 100%;
   font-weight: 500;
   line-height: 1.45;
-  width: min(460px, 100%);
 }
 
 .hf-note-info {
