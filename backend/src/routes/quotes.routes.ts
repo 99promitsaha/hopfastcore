@@ -3,8 +3,6 @@ import rateLimit from 'express-rate-limit';
 import { requestLiFiQuote } from '../lib/lifiClient.js';
 import { requestDebridgeQuote } from '../lib/debridgeClient.js';
 import { requestSquidQuote } from '../lib/squidClient.js';
-import { QuoteLog } from '../models/QuoteLog.js';
-import { isDatabaseReady } from '../config/db.js';
 import { env } from '../config/env.js';
 
 const router = Router();
@@ -52,18 +50,6 @@ router.post('/quotes', quoteLimiter, async (req, res) => {
       quote = await requestSquidQuote(req.body);
     } else {
       quote = await requestLiFiQuote(req.body);
-    }
-
-    const topQuote = quote.quotes?.[0];
-
-    if (isDatabaseReady()) {
-      await QuoteLog.create({
-        requestPayload: req.body,
-        quoteId: topQuote?.id,
-        route: topQuote?.routeSteps?.map((step) => step.type).filter(Boolean).join(' + '),
-        provider,
-        responsePayload: quote
-      });
     }
 
     return res.json(quote);
