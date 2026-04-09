@@ -9,9 +9,10 @@ const ALCHEMY_CHAIN_SUBDOMAIN: Partial<Record<ChainKey, string>> = {
   polygon: 'polygon-mainnet'
 };
 
-// BSC is NOT supported by Alchemy — use public RPCs as fallback
+// BSC and Monad are NOT supported by Alchemy — use public RPCs as fallback
 const FALLBACK_RPC_BY_CHAIN: Partial<Record<ChainKey, string[]>> = {
-  bsc: ['https://binance.llamarpc.com', 'https://bsc-rpc.publicnode.com']
+  bsc: ['https://binance.llamarpc.com', 'https://bsc-rpc.publicnode.com'],
+  monad: ['https://rpc.monad.xyz', 'https://monad-mainnet.drpc.org']
 };
 
 function getAlchemyApiKey(): string | undefined {
@@ -272,8 +273,9 @@ export async function fetchSingleTokenBalance(
   // Fallback RPCs
   const rpcs = FALLBACK_RPC_BY_CHAIN[chainKey] ?? [
     chainKey === 'ethereum' ? 'https://eth.llamarpc.com' :
-    chainKey === 'base' ? 'https://base.llamarpc.com' :
-    chainKey === 'polygon' ? 'https://polygon.llamarpc.com' :
+    chainKey === 'base'     ? 'https://base.llamarpc.com' :
+    chainKey === 'polygon'  ? 'https://polygon.llamarpc.com' :
+    chainKey === 'monad'    ? 'https://rpc.monad.xyz' :
     undefined
   ].filter(Boolean) as string[];
 

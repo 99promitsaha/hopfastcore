@@ -44,7 +44,8 @@ const BLOCK_EXPLORER: Record<ChainKey, string> = {
   ethereum: 'https://etherscan.io/tx/',
   base: 'https://basescan.org/tx/',
   bsc: 'https://bscscan.com/tx/',
-  polygon: 'https://polygonscan.com/tx/'
+  polygon: 'https://polygonscan.com/tx/',
+  monad: 'https://monadscan.com/tx/'
 };
 
 type TxStage = StatusTxStage;
@@ -95,6 +96,13 @@ function getAnotherChain(chain: ChainKey): ChainKey {
   return allKeys[(idx + 1) % allKeys.length];
 }
 
+/** Returns a different token symbol on the same chain, avoiding the excluded symbol. */
+function getDifferentToken(chain: ChainKey, excludeSymbol: string): string {
+  const tokens = CHAIN_BY_KEY[chain].tokens;
+  const other = tokens.find((t) => t.symbol !== excludeSymbol);
+  return other?.symbol ?? tokens[0].symbol;
+}
+
 function resolveToken(chain: ChainKey, preferred?: string, fallback?: string): string {
   if (preferred && getToken(chain, preferred)) return preferred;
   if (fallback && getToken(chain, fallback)) return fallback;
@@ -112,7 +120,8 @@ function toHexQuantity(value?: string): string | undefined {
 }
 
 function isValidSwapInput(draft: SwapDraft): boolean {
-  if (draft.fromChain === draft.toChain) return false;
+  // Same chain + same token = nothing to swap
+  if (draft.fromChain === draft.toChain && draft.fromTokenSymbol === draft.toTokenSymbol) return false;
   const amount = Number(draft.amount);
   return Number.isFinite(amount) && amount > 0;
 }
@@ -703,26 +712,34 @@ function App() {
   };
 
   const updateFromChain = (chain: ChainKey) => {
-    const toChain = draft.toChain === chain ? getAnotherChain(chain) : draft.toChain;
+    const isSameChain = draft.toChain === chain;
+    // If switching to same chain as destination, pick a different to-token to avoid same-token swap
+    const fromTokenSymbol = resolveToken(chain, undefined, draft.fromTokenSymbol);
+    const toTokenSymbol = isSameChain
+      ? getDifferentToken(chain, fromTokenSymbol)
+      : resolveToken(draft.toChain, undefined, draft.toTokenSymbol);
     const next: SwapDraft = {
       ...draft,
       fromChain: chain,
-      toChain,
-      fromTokenSymbol: resolveToken(chain, undefined, draft.fromTokenSymbol),
-      toTokenSymbol: resolveToken(toChain, undefined, draft.toTokenSymbol),
+      fromTokenSymbol,
+      toTokenSymbol,
     };
     setDraft(next);
     triggerFetchImmediate(next);
   };
 
   const updateToChain = (chain: ChainKey) => {
-    const fromChain = draft.fromChain === chain ? getAnotherChain(chain) : draft.fromChain;
+    const isSameChain = draft.fromChain === chain;
+    // If switching to same chain as source, pick a different to-token to avoid same-token swap
+    const fromTokenSymbol = resolveToken(draft.fromChain, undefined, draft.fromTokenSymbol);
+    const toTokenSymbol = isSameChain
+      ? getDifferentToken(chain, fromTokenSymbol)
+      : resolveToken(chain, undefined, draft.toTokenSymbol);
     const next: SwapDraft = {
       ...draft,
-      fromChain,
       toChain: chain,
-      fromTokenSymbol: resolveToken(fromChain, undefined, draft.fromTokenSymbol),
-      toTokenSymbol: resolveToken(chain, undefined, draft.toTokenSymbol),
+      fromTokenSymbol,
+      toTokenSymbol,
     };
     setDraft(next);
     triggerFetchImmediate(next);
@@ -794,26 +811,14 @@ function App() {
               </button>
             </div>
 
-            <div className="hf-chain-logos">
-              {CHAINS.slice(0, 4).map((chain) => (
-                <img key={chain.key} className="hf-chain-logo-icon" src={chain.logoURI} alt={chain.name} />
-              ))}
-              <span className="hf-chain-more-label">+ more</span>
-            </div>
-
-            <div className="hf-stats-bar">
-              <div className="hf-stat">
-                <div className="hf-stat-value">4+</div>
-                <div className="hf-stat-label">Chains</div>
+            <div className="hf-chain-live-row">
+              <span className="hf-chain-live-label">Live on</span>
+              <div className="hf-chain-avatars">
+                {CHAINS.map((chain) => (
+                  <img key={chain.key} className="hf-chain-avatar" src={chain.logoURI} alt={chain.name} title={chain.name} />
+                ))}
               </div>
-              <div className="hf-stat">
-                <div className="hf-stat-value">20+</div>
-                <div className="hf-stat-label">Tokens</div>
-              </div>
-              <div className="hf-stat">
-                <div className="hf-stat-value">&lt;30s</div>
-                <div className="hf-stat-label">Avg Swap</div>
-              </div>
+              <span className="hf-chain-more-text">& more 🔜</span>
             </div>
           </motion.main>
         )}
@@ -870,7 +875,11 @@ function App() {
                   </button>
 
                   <h3 className="hf-swap-title">Hop. <span>At Light Speed.</span></h3>
-                  <p className="hf-swap-sub">We show you the best ones. You just hit swap. At zero extra fees.</p>
+                  <p className="hf-swap-sub">
+                    {draft.fromChain === draft.toChain
+                      ? 'Swap tokens on the same chain. Best DEX route, zero extra fees.'
+                      : 'We show you the best ones. You just hit swap. At zero extra fees.'}
+                  </p>
 
                   {/* ── Dynamic Island: Quote Refresh Countdown ── */}
                   <AnimatePresence>
@@ -1042,6 +1051,10 @@ function App() {
                                 </span>
                               ) : isDisabled ? (
                                 <span className="hf-provider-meta">Unavailable</span>
+                              ) : key in quotes && quotes[key] === null ? (
+                                <span className="hf-provider-meta hf-provider-meta-noroute">
+                                  No route found · retrying in {quoteCountdown ?? '—'}s
+                                </span>
                               ) : (
                                 <span className="hf-provider-meta">
                                   {isValidSwapInput(draft) ? 'Ready' : 'Enter amount'}
@@ -1223,7 +1236,9 @@ function App() {
                             {record.amount} {record.fromTokenSymbol} → {record.toTokenSymbol}
                           </span>
                           <span className="hf-history-chain">
-                            {record.fromChain} → {record.toChain}
+                            {record.fromChain === record.toChain
+                              ? record.fromChain
+                              : `${record.fromChain} → ${record.toChain}`}
                           </span>
                         </div>
                         <div className="hf-history-row">

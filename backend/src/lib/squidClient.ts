@@ -1,6 +1,6 @@
 import { env } from '../config/env.js';
 
-type ChainKey = 'ethereum' | 'base' | 'bsc' | 'polygon';
+type ChainKey = 'ethereum' | 'base' | 'bsc' | 'polygon' | 'monad';
 
 interface UnifiedQuotePayload {
   srcChainKey?: string;
@@ -21,7 +21,8 @@ const CHAIN_ID_BY_KEY: Record<ChainKey, number> = {
   ethereum: 1,
   base: 8453,
   bsc: 56,
-  polygon: 137
+  polygon: 137,
+  monad: 143
 };
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';

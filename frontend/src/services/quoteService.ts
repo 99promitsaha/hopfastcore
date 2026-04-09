@@ -111,8 +111,8 @@ export async function getSwapQuote(
   request: QuoteRequest,
   provider: 'lifi' | 'relay' | 'debridge' | 'squid' = 'lifi'
 ): Promise<QuoteResult> {
-  if (request.fromChain === request.toChain) {
-    throw new Error('Source and destination chains must be different.');
+  if (request.fromChain === request.toChain && request.fromTokenSymbol === request.toTokenSymbol) {
+    throw new Error('Source and destination tokens must be different for a same-chain swap.');
   }
 
   const fromToken = getToken(request.fromChain, request.fromTokenSymbol);

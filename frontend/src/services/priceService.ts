@@ -6,18 +6,17 @@
 const COINGECKO_API = 'https://api.coingecko.com/api/v3/simple/price';
 
 const SYMBOL_TO_COINGECKO_ID: Record<string, string> = {
-  ETH: 'ethereum',
-  WETH: 'ethereum',
-  BNB: 'binancecoin',
-  USDC: 'usd-coin',
-  USDT: 'tether',
-  DAI: 'dai',
-  WBTC: 'wrapped-bitcoin',
-  BUSD: 'binance-usd',
-  POL: 'matic-network',
-  ARB: 'arbitrum',
-  OP: 'optimism',
-  cbBTC: 'coinbase-wrapped-btc'
+  ETH:   'ethereum',
+  BNB:   'binancecoin',
+  USDC:  'usd-coin',
+  USDT:  'tether',
+  DAI:   'dai',
+  WBTC:  'wrapped-bitcoin',
+  BTCB:  'bitcoin',
+  cbBTC: 'coinbase-wrapped-btc',
+  BUSD:  'binance-usd',
+  POL:   'matic-network',
+  MON:   'monad-2'
 };
 
 interface PriceCache {
