@@ -154,14 +154,7 @@ input, select, textarea, button { font-family: inherit; }
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: var(--hf-gradient-brand);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 900;
-  font-size: 0.8rem;
-  color: #fff;
-  letter-spacing: -0.05em;
+  object-fit: contain;
 }
 
 .hf-logo-text {

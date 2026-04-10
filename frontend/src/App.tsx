@@ -148,7 +148,7 @@ function App() {
       {/* Header */}
       <header className="hf-header">
         <div className="hf-logo" onClick={() => { setView('landing'); clearTxStatus(); }} style={{ cursor: 'pointer' }}>
-          <div className="hf-logo-icon">🐰</div>
+          <img src="/favicon.svg" alt="" className="hf-logo-icon" />
           <span className="hf-logo-text">HopFast</span>
         </div>
         {HAS_PRIVY ? (
