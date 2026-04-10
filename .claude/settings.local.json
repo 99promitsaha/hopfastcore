@@ -53,7 +53,9 @@
       "Bash(curl -sI \"https://icons.llamao.fi/icons/protocols/pendle\")",
       "Bash(curl -sI \"https://icons.llamao.fi/icons/tokens/8453/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913\")",
       "Bash(curl -sI \"https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/assets/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913/logo.png\")",
-      "Bash(mongosh mongodb://127.0.0.1:27017/hopfast --eval \"db.dropDatabase\\(\\)\")"
+      "Bash(mongosh mongodb://127.0.0.1:27017/hopfast --eval \"db.dropDatabase\\(\\)\")",
+      "Bash(python3 -c ':*)",
+      "Bash(python3 -)"
     ]
   }
 }

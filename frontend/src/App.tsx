@@ -11,6 +11,7 @@ import { LandingView } from './components/LandingView';
 import { AgentView } from './components/AgentView';
 import { SwapView } from './components/SwapView';
 import { EarnView } from './components/EarnView';
+import { StatsView } from './components/StatsView';
 import { TransactionHistoryModal } from './components/TransactionHistoryModal';
 import { CHAIN_BY_KEY } from './lib/chains';
 import { usePrices } from './hooks/usePrices';
@@ -168,6 +169,10 @@ function App() {
 
         {view === 'agent' && (
           <AgentView onBack={() => setView('landing')} />
+        )}
+
+        {view === 'stats' && (
+          <StatsView onBack={() => setView('landing')} />
         )}
 
         {view === 'human' && (
@@ -348,6 +353,7 @@ function App() {
       <footer className="hf-footer">
         <div>
           <a href="https://t.me/promitsaha" target="_blank" rel="noopener noreferrer">Support</a>
+          <button className="hf-footer-link" onClick={() => setView('stats')}>Stats</button>
           <button className="hf-footer-link" onClick={() => setPrivacyOpen(true)}>Privacy</button>
         </div>
         <p>© 2026 HopFast</p>
