@@ -55,7 +55,10 @@
       "Bash(curl -sI \"https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/assets/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913/logo.png\")",
       "Bash(mongosh mongodb://127.0.0.1:27017/hopfast --eval \"db.dropDatabase\\(\\)\")",
       "Bash(python3 -c ':*)",
-      "Bash(python3 -)"
+      "Bash(python3 -)",
+      "Bash(node --input-type=module --eval ':*)",
+      "Bash(curl -s http://localhost:8080/api/health)",
+      "mcp__hopfast__check_health"
     ]
   }
 }
