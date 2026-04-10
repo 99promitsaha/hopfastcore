@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../constants';
-import type { EarnVaultsResponse, EarnPortfolioResponse, EarnPositionRecord } from '../types';
+import type { EarnVaultsResponse, EarnPortfolioResponse, EarnPositionRecord, EarnPreference } from '../types';
 
 /**
  * All Earn Data API calls are proxied through our backend
@@ -78,5 +78,25 @@ export async function savePosition(data: {
 export async function deletePosition(id: string): Promise<void> {
   const res = await fetch(`${API_BASE_URL}/earn/positions/${id}`, { method: 'DELETE' });
   if (!res.ok) throw new Error(`Delete position error: ${res.status}`);
+}
+
+/* ─── Earn Preferences ───────────────────────────────── */
+
+export async function fetchPreferences(walletAddress: string): Promise<EarnPreference | null> {
+  const res = await fetch(`${API_BASE_URL}/earn/preferences/${walletAddress}`);
+  if (!res.ok) return null;
+  const body = await res.json();
+  return body.preference ?? null;
+}
+
+export async function savePreferences(
+  walletAddress: string,
+  prefs: EarnPreference
+): Promise<void> {
+  await fetch(`${API_BASE_URL}/earn/preferences`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userAddress: walletAddress, ...prefs }),
+  });
 }
 

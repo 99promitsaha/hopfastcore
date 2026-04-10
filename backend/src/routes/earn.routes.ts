@@ -2,6 +2,7 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { env } from '../config/env.js';
 import { EarnPosition } from '../models/EarnPosition.js';
+import { EarnPreference } from '../models/EarnPreference.js';
 import { isDatabaseReady } from '../config/db.js';
 
 const router = Router();
@@ -72,6 +73,43 @@ router.get('/earn/protocols', earnLimiter, async (_req, res) => {
   } catch {
     return res.status(502).json({ error: 'Failed to fetch protocols.' });
   }
+});
+
+/**
+ * GET /earn/preferences/:address
+ */
+router.get('/earn/preferences/:address', earnLimiter, async (req, res) => {
+  const { address } = req.params;
+  if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
+    return res.status(400).json({ error: 'Invalid wallet address.' });
+  }
+  if (!isDatabaseReady()) return res.json({ preference: null });
+  const preference = await EarnPreference.findOne({ userAddress: address.toLowerCase() }).lean();
+  return res.json({ preference: preference ?? null });
+});
+
+/**
+ * POST /earn/preferences
+ */
+router.post('/earn/preferences', earnLimiter, async (req, res) => {
+  const { userAddress, riskAppetite, preferredAsset, experienceLevel } = req.body ?? {};
+  if (!userAddress || !/^0x[0-9a-fA-F]{40}$/.test(userAddress)) {
+    return res.status(400).json({ error: 'Invalid wallet address.' });
+  }
+  if (!['high', 'safe'].includes(riskAppetite)) {
+    return res.status(400).json({ error: 'Invalid riskAppetite.' });
+  }
+  if (!['beginner', 'intermediate', 'advanced'].includes(experienceLevel)) {
+    return res.status(400).json({ error: 'Invalid experienceLevel.' });
+  }
+  if (!isDatabaseReady()) return res.status(503).json({ error: 'Database unavailable.' });
+
+  const preference = await EarnPreference.findOneAndUpdate(
+    { userAddress: userAddress.toLowerCase() },
+    { riskAppetite, preferredAsset: preferredAsset ?? 'any', experienceLevel },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+  return res.status(201).json({ preference });
 });
 
 /**

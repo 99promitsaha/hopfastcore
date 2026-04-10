@@ -8,8 +8,10 @@ import {
 import { useEarnVaults } from '../hooks/useEarnVaults';
 import { useEarnDeposit } from '../hooks/useEarnDeposit';
 import { useEarnPortfolio } from '../hooks/useEarnPortfolio';
+import { EarnOnboarding } from './EarnOnboarding';
+import { fetchPreferences, savePreferences } from '../services/earnService';
 import { parseUnits } from '../lib/amount';
-import type { EarnVault, EarnPositionRecord } from '../types';
+import type { EarnVault, EarnPositionRecord, EarnPreference, EarnFilters } from '../types';
 import type { PrivyWalletBridge } from './WalletConnector';
 
 /* ─── Constants ── */
@@ -75,13 +77,13 @@ interface EarnViewProps {
 }
 
 /** Match vault/token name to a local icon based on keywords */
-function getVaultIcon(name: string): string | null {
-  const n = name.toUpperCase();
-  if (n.includes('USDC')) return '/token-icons/usdc.svg';
-  if (n.includes('USDT')) return '/token-icons/usdt.svg';
-  if (n.includes('DAI')) return '/token-icons/dai.svg';
-  if (n.includes('WBTC') || n.includes('BTC')) return '/token-icons/wbtc.png';
-  if (n.includes('ETH')) return '/token-icons/eth.svg';
+function getTokenIcon(symbol: string): string | null {
+  const s = symbol.toUpperCase();
+  if (s === 'USDC' || s === 'USDC.E' || s === 'USDCE') return '/token-icons/usdc.svg';
+  if (s === 'USDT') return '/token-icons/usdt.svg';
+  if (s === 'DAI' || s === 'XDAI') return '/token-icons/dai.svg';
+  if (s === 'WBTC' || s === 'BTC' || s === 'CBBTC' || s === 'TBTC') return '/token-icons/wbtc.png';
+  if (s === 'ETH' || s === 'WETH' || s === 'STETH' || s === 'WSTETH') return '/token-icons/eth.svg';
   return null;
 }
 
@@ -166,6 +168,28 @@ function FilterDropdown({ label, options, value, onChange }: {
   );
 }
 
+function prefsToFilters(prefs: EarnPreference): Partial<EarnFilters> {
+  const f: Partial<EarnFilters> = {};
+  f.sortBy = prefs.riskAppetite === 'high' ? 'apy' : 'tvl';
+
+  if (prefs.preferredAsset === 'USDC') { f.stablecoinOnly = true;  f.asset = 'USDC'; }
+  else if (prefs.preferredAsset === 'USDT') { f.stablecoinOnly = true;  f.asset = 'USDT'; }
+  else if (prefs.preferredAsset === 'ETH')  { f.stablecoinOnly = false; f.asset = 'ETH'; }
+  else if (prefs.preferredAsset === 'WBTC') { f.stablecoinOnly = false; f.asset = 'WBTC'; }
+  else { f.stablecoinOnly = false; f.asset = null; }
+
+  // Beginners get stablecoins regardless of asset choice — safety first
+  if (prefs.experienceLevel === 'beginner' && !f.stablecoinOnly) {
+    f.stablecoinOnly = true;
+    f.asset = null;
+  }
+  return f;
+}
+
+function onboardingKey(address: string) {
+  return `hf_earn_onboarded_${address.toLowerCase()}`;
+}
+
 /* ─── Main Component ── */
 export function EarnView({ walletBridge, activeWalletAddress, onBack }: EarnViewProps) {
   const { vaults, loading, error, filters, updateFilters, loadMore, hasMore, allCount } = useEarnVaults();
@@ -175,10 +199,56 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack }: EarnView
   const [selectedVault, setSelectedVault] = useState<EarnVault | null>(null);
   const [inputAmount, setInputAmount] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [apyTip, setApyTip] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const prefsChecked = useRef(false);
+
+  // Check for saved preferences when wallet connects
+  useEffect(() => {
+    if (!activeWalletAddress || prefsChecked.current) return;
+    prefsChecked.current = true;
+
+    const key = onboardingKey(activeWalletAddress);
+    const cached = localStorage.getItem(key);
+    if (cached) {
+      // Returning user — apply saved prefs immediately
+      try {
+        updateFilters(prefsToFilters(JSON.parse(cached)));
+      } catch { /* ignore malformed cache */ }
+      return;
+    }
+    // First time — fetch from DB, show modal if nothing found
+    fetchPreferences(activeWalletAddress).then((prefs) => {
+      if (prefs) {
+        localStorage.setItem(key, JSON.stringify(prefs));
+        updateFilters(prefsToFilters(prefs));
+      } else {
+        setShowOnboarding(true);
+      }
+    }).catch(() => setShowOnboarding(true));
+  }, [activeWalletAddress]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleOnboardingComplete = async (prefs: EarnPreference) => {
+    setShowOnboarding(false);
+    updateFilters(prefsToFilters(prefs));
+    if (activeWalletAddress) {
+      localStorage.setItem(onboardingKey(activeWalletAddress), JSON.stringify(prefs));
+      savePreferences(activeWalletAddress, prefs).catch(() => { /* non-critical */ });
+    }
+  };
+
+  const handleOnboardingSkip = () => {
+    setShowOnboarding(false);
+    if (activeWalletAddress) {
+      // Mark as seen so it doesn't reappear this session
+      localStorage.setItem(onboardingKey(activeWalletAddress), JSON.stringify({ skipped: true }));
+    }
+  };
 
   const earnAction = useEarnDeposit(walletBridge, () => {
     setSelectedVault(null);
     setInputAmount('');
+    setApyTip(null);
     portfolio.refresh();
   });
 
@@ -210,6 +280,7 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack }: EarnView
   const closeModal = () => {
     setSelectedVault(null);
     setInputAmount('');
+    setApyTip(null);
     earnAction.reset();
   };
 
@@ -229,6 +300,14 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack }: EarnView
       transition={{ duration: 0.18 }}
       className="hf-earn-wrap"
     >
+      {/* ── Onboarding Modal ── */}
+      {showOnboarding && (
+        <EarnOnboarding
+          onComplete={handleOnboardingComplete}
+          onSkip={handleOnboardingSkip}
+        />
+      )}
+
       {/* ── Deposit Modal ── */}
       <AnimatePresence>
         {selectedVault && (
@@ -271,16 +350,40 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack }: EarnView
                   <span className="hf-earn-stat-value">{formatTvl(selectedVault.analytics.tvl.usd)}</span>
                 </div>
                 <div className="hf-earn-stat">
-                  <span className="hf-earn-stat-label">Base APY</span>
+                  <span className="hf-earn-stat-label">
+                    Base APY
+                    <button className="hf-apy-tip-btn" onClick={() => setApyTip(apyTip === 'base' ? null : 'base')}>
+                      <Info size={11} />
+                    </button>
+                  </span>
                   <span className="hf-earn-stat-value">{formatApy(selectedVault.analytics.apy.base)}</span>
+                  {apyTip === 'base' && (
+                    <p className="hf-apy-tip-text">The core yield from the vault's lending or strategy — e.g. interest paid by borrowers. This is the stable, sustainable part of your return.</p>
+                  )}
                 </div>
                 <div className="hf-earn-stat">
-                  <span className="hf-earn-stat-label">Reward APY</span>
+                  <span className="hf-earn-stat-label">
+                    Reward APY
+                    <button className="hf-apy-tip-btn" onClick={() => setApyTip(apyTip === 'reward' ? null : 'reward')}>
+                      <Info size={11} />
+                    </button>
+                  </span>
                   <span className="hf-earn-stat-value">{formatApy(selectedVault.analytics.apy.reward)}</span>
+                  {apyTip === 'reward' && (
+                    <p className="hf-apy-tip-text">Extra yield from protocol token incentives (e.g. MORPHO, COMP, OP). Can be volatile — if the reward token price drops or the incentive program ends, this number may fall significantly.</p>
+                  )}
                 </div>
                 <div className="hf-earn-stat">
-                  <span className="hf-earn-stat-label">30d APY</span>
+                  <span className="hf-earn-stat-label">
+                    30d APY
+                    <button className="hf-apy-tip-btn" onClick={() => setApyTip(apyTip === '30d' ? null : '30d')}>
+                      <Info size={11} />
+                    </button>
+                  </span>
                   <span className="hf-earn-stat-value">{formatApy(selectedVault.analytics.apy30d)}</span>
+                  {apyTip === '30d' && (
+                    <p className="hf-apy-tip-text">The actual average yield delivered over the last 30 days. Often the most reliable number — it reflects real past performance, not a forward-looking estimate.</p>
+                  )}
                 </div>
               </div>
 
@@ -475,9 +578,7 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack }: EarnView
                     onClick={() => openVaultModal(vault)}
                   >
                     <div className="hf-earn-vault-main">
-                      {getVaultIcon(vault.name) && (
-                        <img src={getVaultIcon(vault.name)!} alt="" className="hf-earn-vault-icon" />
-                      )}
+                      {(() => { const icon = getTokenIcon(vault.underlyingTokens?.[0]?.symbol ?? vault.name); return icon ? <img src={icon} alt="" className="hf-earn-vault-icon" /> : null; })()}
                       <div className="hf-earn-vault-name-wrap">
                         <span className="hf-earn-vault-name">{vault.name}</span>
                         <span className="hf-earn-vault-protocol">
@@ -582,9 +683,7 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack }: EarnView
                     className="hf-earn-vault-row hf-earn-position-row"
                   >
                     <div className="hf-earn-vault-main">
-                      {getVaultIcon(pos.vaultName || pos.tokenSymbol) && (
-                        <img src={getVaultIcon(pos.vaultName || pos.tokenSymbol)!} alt="" className="hf-earn-vault-icon" />
-                      )}
+                      {(() => { const icon = getTokenIcon(pos.tokenSymbol || pos.vaultName); return icon ? <img src={icon} alt="" className="hf-earn-vault-icon" /> : null; })()}
                       <div className="hf-earn-vault-name-wrap">
                         <span className="hf-earn-vault-name">{pos.vaultName || pos.tokenSymbol}</span>
                         <span className="hf-earn-vault-protocol">

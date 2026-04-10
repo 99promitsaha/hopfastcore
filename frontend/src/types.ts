@@ -100,6 +100,12 @@ export interface EarnPortfolioResponse {
 
 export type EarnSortBy = 'apy' | 'tvl';
 
+export interface EarnPreference {
+  riskAppetite: 'high' | 'safe';
+  preferredAsset: 'USDC' | 'USDT' | 'ETH' | 'WBTC' | 'any';
+  experienceLevel: 'beginner' | 'intermediate' | 'advanced';
+}
+
 export interface EarnFilters {
   chainId: number | null;
   stablecoinOnly: boolean;
