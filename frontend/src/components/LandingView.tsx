@@ -42,9 +42,7 @@ export function LandingView({ onHumanClick, onAgentClick }: LandingViewProps) {
         <button className="hf-role-card hf-role-card-muted" onClick={onAgentClick}>
           <div>
             <p className="hf-role-title">Agent</p>
-            <p className="hf-role-sub">
-              <span className="hf-soon-pill">Coming soon</span>
-            </p>
+            <p className="hf-role-sub">Claude · Codex · Gemini · OpenClaw</p>
           </div>
           <span className="hf-role-icon hf-role-icon-muted">
             <Bot size={18} />

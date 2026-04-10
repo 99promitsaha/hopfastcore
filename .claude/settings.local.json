@@ -58,7 +58,10 @@
       "Bash(python3 -)",
       "Bash(node --input-type=module --eval ':*)",
       "Bash(curl -s http://localhost:8080/api/health)",
-      "mcp__hopfast__check_health"
+      "mcp__hopfast__check_health",
+      "Bash(curl -s https://mcp.hopfast.xyz/health)",
+      "Bash(curl -s -X POST https://mcp.hopfast.xyz/mcp -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}')",
+      "Bash(curl -s -X POST https://mcp.hopfast.xyz/mcp -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}')"
     ]
   }
 }
