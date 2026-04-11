@@ -9,7 +9,6 @@ const walletSchema = z.object({
   address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid wallet address')
 });
 
-// Register or update last-seen for a wallet
 router.post('/wallets', async (req, res) => {
   if (!isDatabaseReady()) {
     return res.status(503).json({ error: 'Database unavailable.' });

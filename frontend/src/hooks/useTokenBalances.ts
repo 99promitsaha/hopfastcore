@@ -20,7 +20,6 @@ export function useTokenBalances(
   const [balanceRefreshTick, setBalanceRefreshTick] = useState(0);
   const [balanceError, setBalanceError] = useState('');
 
-  // Fetch balances for all source-chain assets
   useEffect(() => {
     if (!activeWalletAddress) {
       setBalanceError('');

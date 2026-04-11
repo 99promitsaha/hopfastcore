@@ -80,7 +80,6 @@ export function PrivyWalletConnector({
   useEffect(() => {
     onWalletAddress(walletAddress ?? null);
 
-    // Register wallet in backend
     if (walletAddress) {
       const base = import.meta.env.VITE_HOPFAST_API_BASE_URL?.replace(/\/$/, '')
         || (['localhost', '127.0.0.1'].includes(window.location.hostname) ? 'http://localhost:8080/api' : '');

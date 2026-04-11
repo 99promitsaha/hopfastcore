@@ -70,13 +70,11 @@ async function fetchLiFiStatus(txHash: string, fromChainId: number): Promise<Sta
 
 // ── deBridge status: GET /api/Transaction/{hash}/orderIds → GET /api/Orders/{orderId}
 async function fetchDebridgeStatus(txHash: string): Promise<StatusResult> {
-  // Step 1: Get order ID from tx hash
   const orderIdsResponse = await fetch(
     `https://dln-api.debridge.finance/api/Transaction/${txHash}/orderIds`
   );
 
   if (!orderIdsResponse.ok) {
-    // Tx not indexed yet
     return { status: 'confirming', substatus: 'Transaction not yet indexed by deBridge.' };
   }
 
@@ -87,7 +85,6 @@ async function fetchDebridgeStatus(txHash: string): Promise<StatusResult> {
     return { status: 'confirming', substatus: 'Waiting for deBridge to detect the order.' };
   }
 
-  // Step 2: Get order status
   const orderResponse = await fetch(
     `https://dln-api.debridge.finance/api/Orders/${orderId}`
   );

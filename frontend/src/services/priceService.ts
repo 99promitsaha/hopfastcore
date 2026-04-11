@@ -26,7 +26,6 @@ const SYMBOL_TO_CG_ID: Record<string, string> = {
   VIRTUAL: 'virtual-protocol',
 };
 
-// All symbols we need prices for
 const ALL_SYMBOLS = Object.keys(SYMBOL_TO_CG_ID);
 
 // ── Cache ──
@@ -99,7 +98,6 @@ async function fetchViaCMC(apiKey: string): Promise<Record<string, number>> {
 
 // ── Waterfall: CoinGecko (keyed) → CMC → CoinGecko (free) ──
 async function fetchAllPrices(): Promise<Record<string, number>> {
-  // 1. CoinGecko with API key
   if (CG_API_KEY) {
     try {
       const prices = await fetchViaCoinGecko(CG_API_KEY);
@@ -110,7 +108,6 @@ async function fetchAllPrices(): Promise<Record<string, number>> {
     } catch { /* fall through */ }
   }
 
-  // 2. CoinMarketCap
   if (CMC_API_KEY) {
     try {
       const prices = await fetchViaCMC(CMC_API_KEY);
@@ -121,7 +118,6 @@ async function fetchAllPrices(): Promise<Record<string, number>> {
     } catch { /* fall through */ }
   }
 
-  // 3. CoinGecko free (no key, last resort)
   try {
     const prices = await fetchViaCoinGecko('');
     if (Object.keys(prices).length > 0) {

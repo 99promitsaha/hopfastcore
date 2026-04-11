@@ -79,7 +79,6 @@ async function fetchBalancesViaAlchemy(
   const balances: Record<string, bigint> = {};
   const address = walletAddress.toLowerCase();
 
-  // Separate native from ERC-20 tokens
   const nativeToken = tokens.find(
     (t) => t.address.toLowerCase() === NATIVE_TOKEN_ADDRESS.toLowerCase()
   );
@@ -87,7 +86,6 @@ async function fetchBalancesViaAlchemy(
     (t) => t.address.toLowerCase() !== NATIVE_TOKEN_ADDRESS.toLowerCase()
   );
 
-  // Build batch request: native balance + Alchemy getTokenBalances
   const batchRequests: Array<{ jsonrpc: string; id: number; method: string; params: unknown[] }> = [];
   let requestId = 1;
 
@@ -130,7 +128,6 @@ async function fetchBalancesViaAlchemy(
   for (const result of results) {
     if (result.error) continue;
 
-    // eth_getBalance response
     if (typeof result.result === 'string') {
       if (nativeToken) {
         balances[nativeToken.address.toLowerCase()] = parseHexToBigInt(result.result);
@@ -138,7 +135,6 @@ async function fetchBalancesViaAlchemy(
       continue;
     }
 
-    // alchemy_getTokenBalances response
     const tokenResult = result.result as {
       tokenBalances?: Array<{
         contractAddress?: string;
@@ -223,17 +219,14 @@ export async function fetchTokenBalancesForChain(
   walletAddress: string,
   tokens: TokenDef[]
 ): Promise<Record<string, bigint>> {
-  // Try Alchemy first (fast single-call for Ethereum, Base, Polygon)
   const alchemyUrl = getAlchemyUrl(chainKey);
   if (alchemyUrl) {
     try {
       return await fetchBalancesViaAlchemy(alchemyUrl, walletAddress, tokens);
     } catch {
-      // Fall through to RPC fallback
     }
   }
 
-  // Fallback: individual RPC calls (BSC or Alchemy not configured)
   const fallbackRpcs = FALLBACK_RPC_BY_CHAIN[chainKey];
   const rpcUrl = fallbackRpcs?.[0];
   if (!rpcUrl) {
@@ -264,7 +257,6 @@ export async function fetchSingleTokenBalance(
   const address = walletAddress.toLowerCase();
   const tokenAddress = token.address.toLowerCase();
 
-  // Try Alchemy first
   const alchemyUrl = getAlchemyUrl(chainKey);
   if (alchemyUrl) {
     try {
@@ -272,11 +264,9 @@ export async function fetchSingleTokenBalance(
       const balance = balances[tokenAddress];
       if (balance != null) return balance;
     } catch {
-      // Fall through
     }
   }
 
-  // Fallback RPCs
   const rpcs = FALLBACK_RPC_BY_CHAIN[chainKey] ?? [
     chainKey === 'ethereum' ? 'https://eth.llamarpc.com' :
     chainKey === 'base'     ? 'https://base.llamarpc.com' :
@@ -301,7 +291,6 @@ export async function fetchSingleTokenBalance(
       );
       return parseHexToBigInt(balanceHex);
     } catch {
-      // Try next RPC
     }
   }
 

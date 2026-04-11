@@ -87,7 +87,7 @@ export function pollTransactionStatus(
         return; // Terminal — stop polling
       }
     } catch {
-      // Non-terminal error — keep polling
+      // keep polling
     }
 
     if (attempts < maxAttempts && !stopped) {

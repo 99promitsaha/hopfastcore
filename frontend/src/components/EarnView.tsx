@@ -212,7 +212,6 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack, onGetMore 
   const [showOnboarding, setShowOnboarding] = useState(false);
   const prefsChecked = useRef(false);
 
-  // Fetch user's available balance for the selected vault's underlying token
   const [vaultTokenBalance, setVaultTokenBalance] = useState<bigint | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
 
@@ -248,7 +247,6 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack, onGetMore 
     return () => { cancelled = true; };
   }, [selectedVault?.address, selectedVault?.chainId, activeWalletAddress]);
 
-  // Check for saved preferences when wallet connects
   useEffect(() => {
     if (!activeWalletAddress || prefsChecked.current) return;
     prefsChecked.current = true;
@@ -332,7 +330,6 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack, onGetMore 
   const tokenSymbol = selectedVault?.underlyingTokens[0]?.symbol ?? 'Token';
   const modalChainId = selectedVault?.chainId ?? 1;
 
-  // Check if input exceeds available balance
   const isInsufficient = (() => {
     if (!inputAmount || vaultTokenBalance == null || !selectedVault) return false;
     const decimals = selectedVault.underlyingTokens[0]?.decimals ?? 18;

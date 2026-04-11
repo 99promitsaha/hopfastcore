@@ -29,7 +29,6 @@ router.get('/stats', async (req, res) => {
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
   const [swapStats, earnStats, swapUsers, earnUsers] = await Promise.all([
-    // Swap volume + count
     TransactionHistory.aggregate([
       { $match: { createdAt: { $gte: since } } },
       {
@@ -41,7 +40,6 @@ router.get('/stats', async (req, res) => {
       },
     ]),
 
-    // Earn deposits grouped by token
     EarnPosition.aggregate([
       { $match: { createdAt: { $gte: since } } },
       {
@@ -54,10 +52,8 @@ router.get('/stats', async (req, res) => {
       { $sort: { total: -1 } },
     ]),
 
-    // Unique swap users
     TransactionHistory.distinct('userAddress', { createdAt: { $gte: since } }),
 
-    // Unique earn users
     EarnPosition.distinct('userAddress', { createdAt: { $gte: since } }),
   ]);
 

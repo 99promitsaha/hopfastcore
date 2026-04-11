@@ -17,10 +17,7 @@ const earnLimiter = rateLimit({
   message: { error: 'Too many requests. Please wait a moment.' }
 });
 
-/**
- * GET /earn/vaults
- * Proxies vault list requests to the LI.FI Earn Data API (avoids CORS).
- */
+
 router.get('/earn/vaults', earnLimiter, async (req, res) => {
   try {
     const qs = new URLSearchParams();
@@ -45,10 +42,7 @@ router.get('/earn/vaults', earnLimiter, async (req, res) => {
   }
 });
 
-/**
- * GET /earn/chains
- * Proxies supported chains list.
- */
+
 router.get('/earn/chains', earnLimiter, async (_req, res) => {
   try {
     const apiRes = await fetch(`${EARN_API}/v1/earn/chains`);
@@ -60,10 +54,7 @@ router.get('/earn/chains', earnLimiter, async (_req, res) => {
   }
 });
 
-/**
- * GET /earn/protocols
- * Proxies supported protocols list.
- */
+
 router.get('/earn/protocols', earnLimiter, async (_req, res) => {
   try {
     const apiRes = await fetch(`${EARN_API}/v1/earn/protocols`);
@@ -75,9 +66,7 @@ router.get('/earn/protocols', earnLimiter, async (_req, res) => {
   }
 });
 
-/**
- * GET /earn/preferences/:address
- */
+
 router.get('/earn/preferences/:address', earnLimiter, async (req, res) => {
   const { address } = req.params;
   if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
@@ -88,9 +77,7 @@ router.get('/earn/preferences/:address', earnLimiter, async (req, res) => {
   return res.json({ preference: preference ?? null });
 });
 
-/**
- * POST /earn/preferences
- */
+
 router.post('/earn/preferences', earnLimiter, async (req, res) => {
   const { userAddress, riskAppetite, preferredAsset, experienceLevel } = req.body ?? {};
   if (!userAddress || !/^0x[0-9a-fA-F]{40}$/.test(userAddress)) {
@@ -112,10 +99,7 @@ router.post('/earn/preferences', earnLimiter, async (req, res) => {
   return res.status(201).json({ preference });
 });
 
-/**
- * GET /earn/positions/:address
- * Returns saved earn positions for a wallet from the database.
- */
+
 router.get('/earn/positions/:address', earnLimiter, async (req, res) => {
   try {
     const address = req.params.address;
@@ -134,10 +118,7 @@ router.get('/earn/positions/:address', earnLimiter, async (req, res) => {
   }
 });
 
-/**
- * POST /earn/positions
- * Saves an earn position after a successful deposit.
- */
+
 router.post('/earn/positions', earnLimiter, async (req, res) => {
   try {
     if (!isDatabaseReady()) {
@@ -184,10 +165,7 @@ router.post('/earn/positions', earnLimiter, async (req, res) => {
   }
 });
 
-/**
- * DELETE /earn/positions/:id
- * Removes an earn position (user-triggered cleanup).
- */
+
 router.delete('/earn/positions/:id', earnLimiter, async (req, res) => {
   try {
     if (!isDatabaseReady()) {
@@ -203,10 +181,7 @@ router.delete('/earn/positions/:id', earnLimiter, async (req, res) => {
   }
 });
 
-/**
- * POST /earn/quote
- * Proxies a deposit quote request to the LI.FI Composer API.
- */
+
 router.post('/earn/quote', earnLimiter, async (req, res) => {
   try {
     const {

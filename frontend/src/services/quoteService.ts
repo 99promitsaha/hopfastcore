@@ -61,7 +61,6 @@ function resolveApiBaseUrl(): string {
     return fromEnv.replace(/\/$/, '');
   }
 
-  // Dev localhost fallback
   if (
     typeof window !== 'undefined' &&
     ['localhost', '127.0.0.1'].includes(window.location.hostname)

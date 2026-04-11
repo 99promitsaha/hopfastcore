@@ -25,7 +25,6 @@ export function useEarnVaults() {
     currentFilters: EarnFilters,
     reset: boolean,
   ) => {
-    // Cancel any in-flight request
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -68,7 +67,6 @@ export function useEarnVaults() {
     }
   }, []);
 
-  // Initial load
   useEffect(() => {
     if (!loadedRef.current) {
       loadedRef.current = true;
@@ -105,7 +103,6 @@ export function useEarnVaults() {
     }
   }, [loading, filters, loadVaults]);
 
-  // Client-side filtering: search + isTransactional
   const filteredVaults = allVaults.filter((v) => {
     if (!v.isTransactional) return false;
     if (filters.search) {

@@ -29,7 +29,6 @@ router.post('/quotes', quoteLimiter, async (req, res) => {
 
   const provider = requestedProvider ?? 'lifi';
 
-  // Basic schema validation
   const { srcChainKey, dstChainKey, srcTokenAddress, dstTokenAddress, amount } = req.body ?? {};
   if (!srcTokenAddress || !dstTokenAddress || !amount) {
     return res.status(400).json({ error: 'Missing required fields: srcTokenAddress, dstTokenAddress, amount.' });

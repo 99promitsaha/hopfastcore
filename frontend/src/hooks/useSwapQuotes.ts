@@ -77,7 +77,6 @@ export function useSwapQuotes(activeWalletAddress: string | null) {
         // Discard if stale
         if (roundRef.current !== round) return;
 
-        // Mark as retrying in UI
         setRetryingProviders((prev) => new Set(prev).add(provider));
 
         retryTimeoutRefs.current[provider] = setTimeout(async () => {
