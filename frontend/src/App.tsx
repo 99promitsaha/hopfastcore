@@ -31,6 +31,7 @@ function App() {
   const [draft, setDraft] = useState<SwapDraft>(DEFAULT_DRAFT);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [swapPrefillNote, setSwapPrefillNote] = useState(false);
 
   const privyAuth = usePrivyAuth();
   const activeWalletAddress = walletBridge?.address ?? walletAddress;
@@ -231,6 +232,8 @@ function App() {
                   onBack={handleBack}
                   onToggleHistory={() => setHistoryOpen((prev) => !prev)}
                   onTxStatusClear={clearTxStatus}
+                  prefillNote={swapPrefillNote}
+                  onPrefillNoteDismiss={() => setSwapPrefillNote(false)}
                 />
               )}
 
@@ -239,6 +242,11 @@ function App() {
                   walletBridge={walletBridge}
                   activeWalletAddress={activeWalletAddress}
                   onBack={handleBack}
+                  onGetMore={(toChain, toTokenSymbol) => {
+                    setDraft((prev) => ({ ...prev, toChain, toTokenSymbol, amount: '' }));
+                    setSwapPrefillNote(true);
+                    setHumanTab('swap');
+                  }}
                 />
               )}
             </AnimatePresence>

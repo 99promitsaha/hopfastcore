@@ -1492,6 +1492,31 @@ input, select, textarea, button { font-family: inherit; }
 
 /* ─── Switch/Swap Direction Button ───────────────────── */
 
+.hf-prefill-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.7rem;
+  margin: 0.3rem 0;
+  border-radius: var(--hf-radius-sm);
+  background: rgba(96, 165, 250, 0.1);
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: rgb(96, 165, 250);
+}
+.hf-prefill-note-dismiss {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+  display: flex;
+}
+.hf-prefill-note-dismiss:hover { opacity: 1; }
+
 /* Anchor sits exactly on the divider line */
 .hf-switch-anchor {
   position: relative;
@@ -2928,14 +2953,56 @@ input, select, textarea, button { font-family: inherit; }
   margin-bottom: 1rem;
 }
 
+.hf-earn-deposit-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
 .hf-earn-deposit-label {
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--hf-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.hf-earn-deposit-balance {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.hf-earn-balance-text {
+  font-size: 0.7rem;
+  color: var(--hf-text-secondary);
+  font-weight: 500;
+}
+
+.hf-earn-insufficient {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #ef4444;
   margin-bottom: 0.5rem;
-  display: block;
+}
+
+.hf-earn-getmore-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--hf-primary-dark);
+  font-weight: 600;
+  font-size: 0.72rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.hf-earn-getmore-link:hover {
+  color: var(--hf-primary);
 }
 
 .hf-earn-deposit-input-wrap {

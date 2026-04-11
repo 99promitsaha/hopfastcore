@@ -10,7 +10,10 @@ import { useEarnDeposit } from '../hooks/useEarnDeposit';
 import { useEarnPortfolio } from '../hooks/useEarnPortfolio';
 import { EarnOnboarding } from './EarnOnboarding';
 import { fetchPreferences, savePreferences } from '../services/earnService';
-import { parseUnits } from '../lib/amount';
+import { fetchSingleTokenBalance } from '../services/balanceService';
+import { parseUnits, formatUnits } from '../lib/amount';
+import { CHAINS } from '../lib/chains';
+import type { ChainKey } from '../lib/chains';
 import type { EarnVault, EarnPositionRecord, EarnPreference, EarnFilters } from '../types';
 import type { PrivyWalletBridge } from './WalletConnector';
 
@@ -74,6 +77,8 @@ interface EarnViewProps {
   walletBridge: PrivyWalletBridge | null;
   activeWalletAddress: string | null;
   onBack: () => void;
+  /** Switch to swap tab with destination prefilled (chain + token). Undefined = not wired up. */
+  onGetMore?: (toChain: ChainKey, toTokenSymbol: string) => void;
 }
 
 /** Match vault/token name to a local icon based on keywords */
@@ -190,8 +195,12 @@ function onboardingKey(address: string) {
   return `hf_earn_onboarded_${address.toLowerCase()}`;
 }
 
+const CHAIN_ID_TO_KEY: Record<number, ChainKey> = Object.fromEntries(
+  CHAINS.map((c) => [c.chainId, c.key])
+) as Record<number, ChainKey>;
+
 /* ─── Main Component ── */
-export function EarnView({ walletBridge, activeWalletAddress, onBack }: EarnViewProps) {
+export function EarnView({ walletBridge, activeWalletAddress, onBack, onGetMore }: EarnViewProps) {
   const { vaults, loading, error, filters, updateFilters, loadMore, hasMore, allCount } = useEarnVaults();
   const portfolio = useEarnPortfolio(activeWalletAddress);
 
@@ -202,6 +211,42 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack }: EarnView
   const [apyTip, setApyTip] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const prefsChecked = useRef(false);
+
+  // Fetch user's available balance for the selected vault's underlying token
+  const [vaultTokenBalance, setVaultTokenBalance] = useState<bigint | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+
+  useEffect(() => {
+    if (!selectedVault || !activeWalletAddress) {
+      setVaultTokenBalance(null);
+      return;
+    }
+
+    const underlying = selectedVault.underlyingTokens[0];
+    if (!underlying) return;
+
+    const chainKey = CHAIN_ID_TO_KEY[selectedVault.chainId];
+    if (!chainKey) return;
+
+    let cancelled = false;
+    setBalanceLoading(true);
+    setVaultTokenBalance(null);
+
+    fetchSingleTokenBalance(chainKey, activeWalletAddress, {
+      address: underlying.address,
+      symbol: underlying.symbol,
+      decimals: underlying.decimals,
+    }).then((bal) => {
+      if (!cancelled) {
+        setVaultTokenBalance(bal);
+        setBalanceLoading(false);
+      }
+    }).catch(() => {
+      if (!cancelled) setBalanceLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [selectedVault?.address, selectedVault?.chainId, activeWalletAddress]);
 
   // Check for saved preferences when wallet connects
   useEffect(() => {
@@ -286,6 +331,13 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack }: EarnView
 
   const tokenSymbol = selectedVault?.underlyingTokens[0]?.symbol ?? 'Token';
   const modalChainId = selectedVault?.chainId ?? 1;
+
+  // Check if input exceeds available balance
+  const isInsufficient = (() => {
+    if (!inputAmount || vaultTokenBalance == null || !selectedVault) return false;
+    const decimals = selectedVault.underlyingTokens[0]?.decimals ?? 18;
+    try { return parseUnits(inputAmount, decimals) > vaultTokenBalance; } catch { return false; }
+  })();
 
   const chainOptions = EARN_CHAINS.map((c) => ({ value: c.id === 0 ? null : String(c.id), label: c.label }));
   const protocolOptions = EARN_PROTOCOLS.map((p) => ({ value: p.value, label: p.label }));
@@ -395,9 +447,40 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack }: EarnView
 
               {/* Deposit input */}
               <div className="hf-earn-deposit-section">
-                <label className="hf-earn-deposit-label">
-                  Deposit {tokenSymbol}
-                </label>
+                <div className="hf-earn-deposit-label-row">
+                  <label className="hf-earn-deposit-label">
+                    Deposit {tokenSymbol}
+                  </label>
+                  {activeWalletAddress && (
+                    <div className="hf-earn-deposit-balance">
+                      {balanceLoading ? (
+                        <span className="hf-skeleton hf-balance-skeleton" aria-hidden="true">&nbsp;</span>
+                      ) : vaultTokenBalance != null ? (
+                        <>
+                          <span className="hf-earn-balance-text">
+                            {formatUnits(vaultTokenBalance, selectedVault!.underlyingTokens[0].decimals, 4)} {tokenSymbol}
+                          </span>
+                          <button
+                            type="button"
+                            className="hf-pct-btn"
+                            onClick={() => {
+                              const decimals = selectedVault!.underlyingTokens[0].decimals;
+                              setInputAmount(formatUnits(vaultTokenBalance / 2n, decimals, decimals));
+                            }}
+                          >50%</button>
+                          <button
+                            type="button"
+                            className="hf-pct-btn"
+                            onClick={() => {
+                              const decimals = selectedVault!.underlyingTokens[0].decimals;
+                              setInputAmount(formatUnits(vaultTokenBalance, decimals, decimals));
+                            }}
+                          >MAX</button>
+                        </>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
                 <div className="hf-earn-deposit-input-wrap">
                   <input
                     className="hf-amount-input"
@@ -409,6 +492,31 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack }: EarnView
                   />
                   <span className="hf-earn-deposit-token">{tokenSymbol}</span>
                 </div>
+
+                {/* Insufficient balance warning */}
+                {isInsufficient && selectedVault && (() => {
+                  const chainKey = CHAIN_ID_TO_KEY[selectedVault.chainId];
+                  const chain = chainKey ? CHAINS.find((c) => c.key === chainKey) : null;
+                  const isSwapSupported = chain?.tokens.some((t) => t.symbol === tokenSymbol);
+
+                  return (
+                    <p className="hf-earn-insufficient">
+                      <span>Insufficient {tokenSymbol} balance.</span>
+                      {isSwapSupported && onGetMore && chainKey && (
+                        <button
+                          type="button"
+                          className="hf-earn-getmore-link"
+                          onClick={() => {
+                            closeModal();
+                            onGetMore(chainKey, tokenSymbol);
+                          }}
+                        >
+                          Get more →
+                        </button>
+                      )}
+                    </p>
+                  );
+                })()}
 
                 {earnAction.stage === 'done' ? (
                   <div className="hf-earn-success">
@@ -432,12 +540,13 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack }: EarnView
                     disabled={
                       !inputAmount ||
                       !activeWalletAddress ||
+                      isInsufficient ||
                       earnAction.quoting ||
                       earnAction.loading
                     }
                   >
                     {earnAction.quoting ? (
-                      <><Loader2 size={14} className="hf-spin" /> Getting quote…</>
+                      <><Loader2 size={14} className="hf-spin" /> Preparing deposit…</>
                     ) : earnAction.stage === 'approving' ? (
                       <><Loader2 size={14} className="hf-spin" /> Approving…</>
                     ) : earnAction.stage === 'executing' ? (
