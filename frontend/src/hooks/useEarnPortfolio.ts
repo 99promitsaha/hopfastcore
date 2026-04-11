@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchPositions, deletePosition } from '../services/earnService';
-import type { EarnPositionRecord } from '../types';
+import { fetchPortfolio, deletePosition } from '../services/earnService';
+import type { MergedPosition } from '../types';
 
 export function useEarnPortfolio(walletAddress: string | null) {
-  const [positions, setPositions] = useState<EarnPositionRecord[]>([]);
+  const [positions, setPositions] = useState<MergedPosition[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const lastAddress = useRef<string | null>(null);
@@ -18,7 +18,7 @@ export function useEarnPortfolio(walletAddress: string | null) {
     setError('');
 
     try {
-      const res = await fetchPositions(walletAddress);
+      const res = await fetchPortfolio(walletAddress);
       setPositions(res.positions ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load positions');
@@ -40,6 +40,8 @@ export function useEarnPortfolio(walletAddress: string | null) {
   }, [walletAddress, refresh]);
 
   const removePosition = useCallback(async (id: string) => {
+    // Only DB-tracked positions can be deleted
+    if (id.startsWith('lifi-')) return;
     try {
       await deletePosition(id);
       setPositions((prev) => prev.filter((p) => p._id !== id));

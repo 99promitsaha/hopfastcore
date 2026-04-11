@@ -11,7 +11,7 @@ import { useEarnPortfolio } from '../hooks/useEarnPortfolio';
 import { EarnOnboarding } from './EarnOnboarding';
 import { fetchPreferences, savePreferences } from '../services/earnService';
 import { parseUnits } from '../lib/amount';
-import type { EarnVault, EarnPositionRecord, EarnPreference, EarnFilters } from '../types';
+import type { EarnVault, EarnPreference, EarnFilters, MergedPosition } from '../types';
 import type { PrivyWalletBridge } from './WalletConnector';
 
 /* ─── Constants ── */
@@ -658,17 +658,24 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack }: EarnView
               <div className="hf-earn-disclaimer">
                 <Info size={14} />
                 <span>
-                  This page is a work in progress. Balances shown are based on recorded deposits
-                  and may not reflect your actual on-chain balance. Use the provider link to manage
-                  or withdraw your position. Not in your wallet anymore? Remove it below.
+                  Balances are fetched live from the chain. Positions deposited outside HopFast
+                  are tagged "Discovered". Use the provider link to manage or withdraw.
                 </span>
               </div>
 
               {/* Portfolio summary */}
               <div className="hf-earn-portfolio-summary">
                 <div className="hf-earn-portfolio-total">
-                  <span className="hf-earn-stat-label">Tracked Positions</span>
+                  <span className="hf-earn-stat-label">Positions</span>
                   <span className="hf-earn-portfolio-total-value">{portfolio.positions.length}</span>
+                  {(() => {
+                    const totalUsd = portfolio.positions.reduce((sum, p) => sum + (p.currentBalanceUsd ? parseFloat(p.currentBalanceUsd) : 0), 0);
+                    return totalUsd > 0 ? (
+                      <span className="hf-earn-stat-label" style={{ marginLeft: '1rem' }}>
+                        ≈ ${totalUsd.toFixed(2)}
+                      </span>
+                    ) : null;
+                  })()}
                 </div>
                 <button className="hf-earn-refresh-btn" onClick={portfolio.refresh} disabled={portfolio.loading}>
                   <RefreshCw size={13} className={portfolio.loading ? 'hf-spin' : ''} />
@@ -685,7 +692,15 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack }: EarnView
                     <div className="hf-earn-vault-main">
                       {(() => { const icon = getTokenIcon(pos.tokenSymbol || pos.vaultName); return icon ? <img src={icon} alt="" className="hf-earn-vault-icon" /> : null; })()}
                       <div className="hf-earn-vault-name-wrap">
-                        <span className="hf-earn-vault-name">{pos.vaultName || pos.tokenSymbol}</span>
+                        <span className="hf-earn-vault-name">
+                          {pos.vaultName || pos.tokenSymbol}
+                          {pos.source === 'discovered' && (
+                            <span className="hf-earn-source-badge hf-earn-source-discovered" title="Deposited outside HopFast">Discovered</span>
+                          )}
+                          {pos.source === 'db_only' && (
+                            <span className="hf-earn-source-badge hf-earn-source-dbonly" title="Not detected on-chain — may have been withdrawn">Withdrawn?</span>
+                          )}
+                        </span>
                         <span className="hf-earn-vault-protocol">
                           {protocolLabel(pos.protocolName)} · {pos.network || CHAIN_NAME[pos.chainId] || `Chain ${pos.chainId}`}
                         </span>
@@ -696,8 +711,22 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack }: EarnView
                     </div>
                     <div className="hf-earn-vault-metrics">
                       <div className="hf-earn-vault-apy">
-                        <span className="hf-earn-vault-tvl-value">{pos.amount} {pos.tokenSymbol}</span>
-                        <span className="hf-earn-vault-tvl-label">Deposited · {formatDate(pos.createdAt)}</span>
+                        {pos.currentBalance != null ? (
+                          <>
+                            <span className="hf-earn-vault-tvl-value">{pos.currentBalance} {pos.tokenSymbol}</span>
+                            <span className="hf-earn-vault-tvl-label">
+                              {pos.currentBalanceUsd ? `≈ $${parseFloat(pos.currentBalanceUsd).toFixed(2)}` : 'Live balance'}
+                              {pos.depositedAmount != null && ` · Deposited ${pos.depositedAmount}`}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="hf-earn-vault-tvl-value">{pos.depositedAmount ?? '—'} {pos.tokenSymbol}</span>
+                            <span className="hf-earn-vault-tvl-label">
+                              Deposited{pos.createdAt ? ` · ${formatDate(pos.createdAt)}` : ''}
+                            </span>
+                          </>
+                        )}
                       </div>
                       <div className="hf-earn-position-actions">
                         {/* Manage on provider */}
@@ -714,40 +743,46 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack }: EarnView
                           </a>
                         )}
                         {/* View tx */}
-                        <a
-                          href={getExplorerUrl(pos.chainId, pos.txHash)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hf-earn-position-link"
-                          title="View transaction"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Search size={13} />
-                        </a>
-                        {/* Delete */}
-                        {confirmDelete === pos._id ? (
-                          <span className="hf-earn-confirm-delete">
-                            <button
-                              className="hf-earn-confirm-yes"
-                              onClick={(e) => { e.stopPropagation(); portfolio.removePosition(pos._id); setConfirmDelete(null); }}
-                            >
-                              Yes, remove
-                            </button>
-                            <button
-                              className="hf-earn-confirm-no"
-                              onClick={(e) => { e.stopPropagation(); setConfirmDelete(null); }}
-                            >
-                              Cancel
-                            </button>
-                          </span>
-                        ) : (
-                          <button
-                            className="hf-earn-delete-btn"
-                            title="Remove from portfolio"
-                            onClick={(e) => { e.stopPropagation(); setConfirmDelete(pos._id); }}
+                        {pos.txHash && (
+                          <a
+                            href={getExplorerUrl(pos.chainId, pos.txHash)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hf-earn-position-link"
+                            title="View transaction"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            <Trash2 size={13} />
-                          </button>
+                            <Search size={13} />
+                          </a>
+                        )}
+                        {/* Delete — only for DB-tracked positions */}
+                        {pos.source !== 'discovered' && (
+                          <>
+                            {confirmDelete === pos._id ? (
+                              <span className="hf-earn-confirm-delete">
+                                <button
+                                  className="hf-earn-confirm-yes"
+                                  onClick={(e) => { e.stopPropagation(); portfolio.removePosition(pos._id); setConfirmDelete(null); }}
+                                >
+                                  Yes, remove
+                                </button>
+                                <button
+                                  className="hf-earn-confirm-no"
+                                  onClick={(e) => { e.stopPropagation(); setConfirmDelete(null); }}
+                                >
+                                  Cancel
+                                </button>
+                              </span>
+                            ) : (
+                              <button
+                                className="hf-earn-delete-btn"
+                                title="Remove from portfolio"
+                                onClick={(e) => { e.stopPropagation(); setConfirmDelete(pos._id); }}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>

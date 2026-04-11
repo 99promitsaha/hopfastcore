@@ -98,6 +98,33 @@ export interface EarnPortfolioResponse {
   positions: EarnPositionRecord[];
 }
 
+/** Merged position from LI.FI live data + HopFast DB records */
+export interface MergedPosition {
+  _id: string;
+  source: 'matched' | 'discovered' | 'db_only';
+  userAddress: string;
+  vaultAddress: string;
+  vaultName: string;
+  chainId: number;
+  network: string;
+  protocolName: string;
+  protocolUrl: string;
+  tokenSymbol: string;
+  tokenAddress: string;
+  tokenDecimals: number;
+  depositedAmount: string | null;
+  depositedAmountRaw: string | null;
+  currentBalance: string | null;
+  currentBalanceUsd: string | null;
+  txHash: string | null;
+  action: string | null;
+  createdAt: string | null;
+}
+
+export interface MergedPortfolioResponse {
+  positions: MergedPosition[];
+}
+
 export type EarnSortBy = 'apy' | 'tvl';
 
 export interface EarnPreference {

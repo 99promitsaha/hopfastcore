@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../constants';
-import type { EarnVaultsResponse, EarnPortfolioResponse, EarnPositionRecord, EarnPreference } from '../types';
+import type { EarnVaultsResponse, EarnPortfolioResponse, EarnPositionRecord, EarnPreference, MergedPortfolioResponse } from '../types';
 
 /**
  * All Earn Data API calls are proxied through our backend
@@ -46,6 +46,13 @@ export async function fetchEarnProtocols(): Promise<Array<{ name: string }>> {
 export async function fetchPositions(walletAddress: string): Promise<EarnPortfolioResponse> {
   const res = await fetch(`${API_BASE_URL}/earn/positions/${walletAddress}`);
   if (!res.ok) throw new Error(`Positions error: ${res.status}`);
+  return res.json();
+}
+
+/** Fetch merged portfolio: live LI.FI balances + HopFast deposit history */
+export async function fetchPortfolio(walletAddress: string): Promise<MergedPortfolioResponse> {
+  const res = await fetch(`${API_BASE_URL}/earn/portfolio/${walletAddress}`);
+  if (!res.ok) throw new Error(`Portfolio error: ${res.status}`);
   return res.json();
 }
 
