@@ -122,17 +122,14 @@ as toTokenAddress and the user's token address as fromTokenAddress.`, {
         };
     });
     // ─── get_earn_positions ────────────────────────────────────────────────────
-    server.tool('get_earn_positions', `Retrieve a user's live DeFi yield positions with real-time on-chain balances.
-Merges live data from LI.FI with HopFast deposit history. Each position has a
-"source" field: "matched" (deposited via HopFast, live balance available),
-"discovered" (found on-chain but deposited elsewhere), or "db_only" (recorded
-in HopFast but no longer detected on-chain — possibly withdrawn).
-Shows current balance, USD value, deposited amount, protocol, chain, and tx hash.`, {
+    server.tool('get_earn_positions', `Retrieve a user's active yield vault positions tracked in HopFast.
+Shows all vaults the user has deposited into, including vault name, protocol,
+chain, token, deposited amount, and deposit transaction hash.`, {
         walletAddress: z
             .string()
             .describe("User's wallet address (0x...)."),
     }, async ({ walletAddress }) => {
-        const result = await hopfastFetch(`/api/earn/portfolio/${walletAddress}`);
+        const result = await hopfastFetch(`/api/earn/positions/${walletAddress}`);
         return {
             content: [
                 {
