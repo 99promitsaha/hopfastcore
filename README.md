@@ -29,7 +29,7 @@ Cross-chain swaps can take anywhere from 30 seconds to a few minutes depending o
 
 ### Earning
 
-Browse yield vaults from protocols like Aave, Compound, and Morpho across all supported chains. Each vault shows the current APY, total value locked, and which token it accepts. Once you pick one, HopFast generates the deposit transaction and you sign it. Your position gets saved and tracked so you can always see what you have in where.
+Browse yield vaults from protocols like Aave, Morpho, and Yo Protocol across all supported chains. Each vault shows the current APY, total value locked, and which token it accepts. Once you pick one, HopFast generates the deposit transaction and you sign it. Your position gets saved and tracked so you can always see what you have in where.
 
 ### Preferences
 
