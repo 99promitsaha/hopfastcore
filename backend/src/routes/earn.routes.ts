@@ -8,6 +8,12 @@ import { isDatabaseReady } from '../config/db.js';
 const router = Router();
 const EARN_API = 'https://earn.li.fi';
 
+function lifiHeaders(): Record<string, string> {
+  const h: Record<string, string> = {};
+  if (env.LIFI_API_KEY) h['x-lifi-api-key'] = env.LIFI_API_KEY;
+  return h;
+}
+
 const earnLimiter = rateLimit({
   windowMs: 60_000,
   max: 60,
@@ -29,7 +35,7 @@ router.get('/earn/vaults', earnLimiter, async (req, res) => {
       }
     }
 
-    const apiRes = await fetch(`${EARN_API}/v1/earn/vaults?${qs}`);
+    const apiRes = await fetch(`${EARN_API}/v1/earn/vaults?${qs}`, { headers: lifiHeaders() });
     const text = await apiRes.text();
 
     if (!apiRes.ok) {
@@ -45,7 +51,7 @@ router.get('/earn/vaults', earnLimiter, async (req, res) => {
 
 router.get('/earn/chains', earnLimiter, async (_req, res) => {
   try {
-    const apiRes = await fetch(`${EARN_API}/v1/earn/chains`);
+    const apiRes = await fetch(`${EARN_API}/v1/earn/chains`, { headers: lifiHeaders() });
     const text = await apiRes.text();
     if (!apiRes.ok) return res.status(apiRes.status).json({ error: 'Failed to fetch chains.' });
     return res.json(JSON.parse(text));
@@ -57,7 +63,7 @@ router.get('/earn/chains', earnLimiter, async (_req, res) => {
 
 router.get('/earn/protocols', earnLimiter, async (_req, res) => {
   try {
-    const apiRes = await fetch(`${EARN_API}/v1/earn/protocols`);
+    const apiRes = await fetch(`${EARN_API}/v1/earn/protocols`, { headers: lifiHeaders() });
     const text = await apiRes.text();
     if (!apiRes.ok) return res.status(apiRes.status).json({ error: 'Failed to fetch protocols.' });
     return res.json(JSON.parse(text));
