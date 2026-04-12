@@ -29,11 +29,17 @@ Cross-chain swaps usually take 30 seconds to a few minutes depending on the chai
 
 ### Earning
 
-Browse yield vaults from protocols like Aave, Morpho, and Yo Protocol across all supported chains. Each vault shows current APY, TVL, and which token it accepts. Pick one, HopFast generates the deposit transaction, you sign it. Your position gets saved so you can always see what you have and where.
+Browse yield vaults from protocols like Aave, Morpho, and Yo Protocol across all supported chains. Each vault shows current APY, TVL, and which token it accepts.
+
+Vault data comes from the LI.FI Earn API, but we don't just dump raw results. The frontend applies its own curation layer on top:
+
+- **Asset family grouping**: Filtering by "ETH" doesn't just show native ETH vaults. It groups ETH, WETH, stETH, and wstETH together. Same for "BTC" which covers WBTC, cbBTC, tBTC, and BTCB. These are resolved client-side so one filter shows you the full picture.
+- **Stablecoin mix**: The stablecoins filter pulls all vaults (no API-level asset filter), then filters client-side for USDC, USDT, DAI, PYUSD, and others. Results are sorted by TVL so you get a natural mix of the biggest pools first instead of only one token dominating the list.
+- **API calls**: Changing a filter that doesn't affect the API query (like toggling between client-side filters) skips the network request and just re-filters locally. Only server-side params (chain, sort order, protocol, specific asset) trigger a fresh fetch.
 
 ### Preferences
 
-Set your risk appetite (aggressive or conservative) and experience level once. HopFast uses that to sort and filter vault recommendations next time you look for yield. You can redo this anytime from the Earn tab.
+First-time users get a short questionnaire: earning style (chase yield vs. safe and steady), preferred asset category (stablecoins, ETH, BTC, DAI, or no preference), and DeFi experience. Beginners automatically get stablecoins regardless of their asset pick. These preferences drive the initial filter state. You can redo this anytime from the Earn tab.
 
 ### Transaction history
 
