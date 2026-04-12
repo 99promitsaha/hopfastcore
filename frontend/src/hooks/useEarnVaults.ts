@@ -2,6 +2,34 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchVaults } from '../services/earnService';
 import type { EarnVault, EarnFilters } from '../types';
 
+const ASSET_FAMILIES: Record<string, string[]> = {
+  ETH_FAMILY: ['ETH', 'WETH', 'STETH', 'WSTETH'],
+  BTC_FAMILY: ['BTC', 'WBTC', 'CBBTC', 'TBTC', 'BTCB'],
+};
+
+const STABLECOIN_SYMBOLS = ['USDC', 'USDC.E', 'USDCE', 'USDT', 'DAI', 'XDAI', 'BUSD', 'USDS', 'PYUSD', 'FRAX', 'LUSD', 'GHO', 'CUSD', 'EUSD'];
+
+/**
+ * Determines what asset param to send to the API.
+ * - Family filters (ETH_FAMILY, BTC_FAMILY) and stablecoin toggle need client-side
+ *   filtering, so we don't send an asset to the API (returns all vaults).
+ * - Single-asset filters (DAI, USDC, etc.) go straight to the API.
+ */
+function resolveApiAsset(filters: EarnFilters): string | undefined {
+  if (filters.asset && filters.asset in ASSET_FAMILIES) return undefined;
+  if (filters.asset) return filters.asset;
+  if (filters.stablecoinOnly) return undefined;
+  return undefined;
+}
+
+/** Check if two filter states would produce the same API call */
+function sameApiCall(a: EarnFilters, b: EarnFilters): boolean {
+  return a.chainId === b.chainId
+    && a.sortBy === b.sortBy
+    && a.protocol === b.protocol
+    && resolveApiAsset(a) === resolveApiAsset(b);
+}
+
 export function useEarnVaults() {
   const [allVaults, setAllVaults] = useState<EarnVault[]>([]);
   const [loading, setLoading] = useState(false);
@@ -34,14 +62,11 @@ export function useEarnVaults() {
 
     try {
       const cursor = reset ? undefined : (cursorRef.current ?? undefined);
-      // Determine asset filter: explicit asset filter takes priority, then stablecoin toggle
-      const assetFilter = currentFilters.asset
-        ?? (currentFilters.stablecoinOnly ? 'USDC' : undefined);
 
       const res = await fetchVaults({
         chainId: currentFilters.chainId ?? undefined,
         sortBy: currentFilters.sortBy,
-        asset: assetFilter,
+        asset: resolveApiAsset(currentFilters),
         protocol: currentFilters.protocol ?? undefined,
         minTvlUsd: 10_000,
         cursor,
@@ -74,20 +99,23 @@ export function useEarnVaults() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Reload when server-side filters change (chain, sort, stablecoin)
   const updateFilters = useCallback((patch: Partial<EarnFilters>) => {
     setFilters((prev) => {
       const next = { ...prev, ...patch };
 
-      // These filters require a fresh API call
-      const serverFilterChanged =
-        (patch.chainId !== undefined && patch.chainId !== prev.chainId) ||
-        (patch.sortBy !== undefined && patch.sortBy !== prev.sortBy) ||
-        (patch.stablecoinOnly !== undefined && patch.stablecoinOnly !== prev.stablecoinOnly) ||
-        (patch.protocol !== undefined && patch.protocol !== prev.protocol) ||
-        (patch.asset !== undefined && patch.asset !== prev.asset);
+      // Clear asset filter when stablecoins toggle is turned on
+      if (patch.stablecoinOnly && next.stablecoinOnly && next.asset) {
+        next.asset = null;
+      }
+      // Turn off stablecoins when a non-stablecoin asset filter is picked
+      if (patch.asset !== undefined && patch.asset != null) {
+        if (patch.asset in ASSET_FAMILIES || !STABLECOIN_SYMBOLS.includes(patch.asset.toUpperCase())) {
+          next.stablecoinOnly = false;
+        }
+      }
 
-      if (serverFilterChanged) {
+      // Only hit the API if the server-side params actually changed
+      if (!sameApiCall(prev, next)) {
         cursorRef.current = null;
         hasMoreRef.current = true;
         loadVaults(next, true);
@@ -103,8 +131,24 @@ export function useEarnVaults() {
     }
   }, [loading, filters, loadVaults]);
 
+  // Client-side filtering for families and stablecoins
+  const familySymbols = filters.asset && ASSET_FAMILIES[filters.asset];
+  const stablecoinFilter = !filters.asset && filters.stablecoinOnly;
+
   const filteredVaults = allVaults.filter((v) => {
     if (!v.isTransactional) return false;
+    if (familySymbols) {
+      const hasMatch = v.underlyingTokens.some((t) =>
+        familySymbols.includes(t.symbol.toUpperCase())
+      );
+      if (!hasMatch) return false;
+    }
+    if (stablecoinFilter) {
+      const hasStable = v.underlyingTokens.some((t) =>
+        STABLECOIN_SYMBOLS.includes(t.symbol.toUpperCase())
+      );
+      if (!hasStable) return false;
+    }
     if (filters.search) {
       const q = filters.search.toLowerCase();
       const matchesName = v.name.toLowerCase().includes(q);
@@ -114,6 +158,11 @@ export function useEarnVaults() {
     }
     return true;
   });
+
+  // TVL sort for client-side filtered results so there's a natural mix
+  if (stablecoinFilter || familySymbols) {
+    filteredVaults.sort((a, b) => (b.analytics?.tvlUsd ?? 0) - (a.analytics?.tvlUsd ?? 0));
+  }
 
   return {
     vaults: filteredVaults,

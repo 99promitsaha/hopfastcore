@@ -44,12 +44,15 @@ const EARN_PROTOCOLS = [
   { value: 'kelp', label: 'Kelp' },
 ];
 
+const ETH_FAMILY = ['ETH', 'WETH', 'STETH', 'WSTETH'];
+const BTC_FAMILY = ['BTC', 'WBTC', 'CBBTC', 'TBTC', 'BTCB'];
+
 const EARN_ASSETS = [
   { value: null, label: 'All Assets' },
   { value: 'USDC', label: 'USDC' },
   { value: 'USDT', label: 'USDT' },
-  { value: 'ETH', label: 'ETH' },
-  { value: 'WBTC', label: 'WBTC' },
+  { value: 'ETH_FAMILY', label: 'ETH' },
+  { value: 'BTC_FAMILY', label: 'BTC' },
   { value: 'DAI', label: 'DAI' },
 ];
 
@@ -87,8 +90,17 @@ function getTokenIcon(symbol: string): string | null {
   if (s === 'USDC' || s === 'USDC.E' || s === 'USDCE') return '/token-icons/usdc.svg';
   if (s === 'USDT') return '/token-icons/usdt.svg';
   if (s === 'DAI' || s === 'XDAI') return '/token-icons/dai.svg';
-  if (s === 'WBTC' || s === 'BTC' || s === 'CBBTC' || s === 'TBTC') return '/token-icons/wbtc.png';
-  if (s === 'ETH' || s === 'WETH' || s === 'STETH' || s === 'WSTETH') return '/token-icons/eth.svg';
+  if (s === 'WSTETH') return '/token-icons/wsteth.svg';
+  if (s === 'WETH' || s === 'STETH') return '/token-icons/weth.png';
+  if (s === 'ETH') return '/token-icons/eth.svg';
+  if (s === 'CBBTC') return '/token-icons/cbbtc.png';
+  if (s === 'WBTC' || s === 'BTC' || s === 'TBTC') return '/token-icons/wbtc.png';
+  if (s === 'BTCB') return '/token-icons/btcb.png';
+  if (s === 'BNB' || s === 'WBNB') return '/token-icons/bnb.svg';
+  if (s === 'POL' || s === 'MATIC' || s === 'WMATIC') return '/token-icons/matic.svg';
+  if (s === 'VIRTUAL') return '/token-icons/virtual.png';
+  if (s === 'MON' || s === 'WMON') return '/token-icons/mon.png';
+  if (s === 'BUSD') return '/token-icons/busd.png';
   return null;
 }
 
@@ -177,10 +189,10 @@ function prefsToFilters(prefs: EarnPreference): Partial<EarnFilters> {
   const f: Partial<EarnFilters> = {};
   f.sortBy = prefs.riskAppetite === 'high' ? 'apy' : 'tvl';
 
-  if (prefs.preferredAsset === 'USDC') { f.stablecoinOnly = true;  f.asset = 'USDC'; }
-  else if (prefs.preferredAsset === 'USDT') { f.stablecoinOnly = true;  f.asset = 'USDT'; }
-  else if (prefs.preferredAsset === 'ETH')  { f.stablecoinOnly = false; f.asset = 'ETH'; }
-  else if (prefs.preferredAsset === 'WBTC') { f.stablecoinOnly = false; f.asset = 'WBTC'; }
+  if (prefs.preferredAsset === 'stablecoins') { f.stablecoinOnly = true; f.asset = null; }
+  else if (prefs.preferredAsset === 'ETH_FAMILY') { f.stablecoinOnly = false; f.asset = 'ETH_FAMILY'; }
+  else if (prefs.preferredAsset === 'BTC_FAMILY') { f.stablecoinOnly = false; f.asset = 'BTC_FAMILY'; }
+  else if (prefs.preferredAsset === 'DAI') { f.stablecoinOnly = false; f.asset = 'DAI'; }
   else { f.stablecoinOnly = false; f.asset = null; }
 
   // Beginners get stablecoins regardless of asset choice — safety first
@@ -651,6 +663,14 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack, onGetMore 
             >
               <TrendingUp size={12} /> {filters.sortBy === 'apy' ? 'Top APY' : 'Top TVL'}
             </button>
+            {(filters.chainId || filters.protocol || filters.asset || filters.stablecoinOnly || filters.search) && (
+              <button
+                className="hf-earn-clear-filters"
+                onClick={() => updateFilters({ chainId: null, protocol: null, asset: null, stablecoinOnly: false, search: '', sortBy: 'apy' })}
+              >
+                <X size={11} /> Clear
+              </button>
+            )}
             <div className="hf-earn-search">
               <Search size={13} />
               <input
@@ -690,10 +710,16 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack, onGetMore 
               </div>
             ) : (
               <>
-                {vaults.map((vault) => (
+                {[...vaults].sort((a, b) => {
+                  const aHas = getTokenIcon(a.underlyingTokens?.[0]?.symbol ?? a.name) ? 1 : 0;
+                  const bHas = getTokenIcon(b.underlyingTokens?.[0]?.symbol ?? b.name) ? 1 : 0;
+                  return bHas - aHas;
+                }).map((vault) => {
+                  const hasIcon = !!getTokenIcon(vault.underlyingTokens?.[0]?.symbol ?? vault.name);
+                  return (
                   <button
                     key={vault.slug}
-                    className="hf-earn-vault-row"
+                    className={`hf-earn-vault-row${hasIcon ? '' : ' hf-earn-vault-noicon'}`}
                     onClick={() => openVaultModal(vault)}
                   >
                     <div className="hf-earn-vault-main">
@@ -726,7 +752,8 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack, onGetMore 
                       </div>
                     </div>
                   </button>
-                ))}
+                  );
+                })}
 
                 {hasMore && (
                   <button className="hf-earn-load-more" onClick={loadMore} disabled={loading}>

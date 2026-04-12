@@ -2568,6 +2568,25 @@ input, select, textarea, button { font-family: inherit; }
   box-shadow: 0 2px 10px var(--hf-primary-glow);
 }
 
+.hf-earn-clear-filters {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--hf-text-muted);
+  background: none;
+  border: 1px dashed var(--hf-border);
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.hf-earn-clear-filters:hover {
+  color: var(--hf-text-primary);
+  border-color: var(--hf-text-muted);
+}
+
 .hf-earn-search {
   display: flex;
   align-items: center;
@@ -2633,6 +2652,7 @@ input, select, textarea, button { font-family: inherit; }
   box-shadow: 0 2px 12px var(--hf-primary-glow);
   transform: translateY(-1px);
 }
+
 
 .hf-earn-vault-main {
   flex: 1;

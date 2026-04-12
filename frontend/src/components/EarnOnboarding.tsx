@@ -100,10 +100,10 @@ export function EarnOnboarding({ onComplete, onSkip }: Props) {
                 <div className="hf-onboarding-assets">
                   {(
                     [
-                      { value: 'USDC', label: 'USDC', icon: '/token-icons/usdc.svg' },
-                      { value: 'USDT', label: 'USDT', icon: '/token-icons/usdt.svg' },
-                      { value: 'ETH',  label: 'ETH',  icon: '/token-icons/eth.svg'  },
-                      { value: 'WBTC', label: 'BTC',  icon: '/token-icons/wbtc.png' },
+                      { value: 'stablecoins', label: 'Stablecoins', icon: '/token-icons/usdc.svg' },
+                      { value: 'ETH_FAMILY',  label: 'ETH',         icon: '/token-icons/eth.svg'  },
+                      { value: 'BTC_FAMILY',  label: 'BTC',         icon: '/token-icons/wbtc.png' },
+                      { value: 'DAI',         label: 'DAI',         icon: '/token-icons/dai.svg'  },
                     ] as const
                   ).map(({ value, label, icon }) => (
                     <button
