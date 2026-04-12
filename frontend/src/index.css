@@ -2517,7 +2517,9 @@ input, select, textarea, button { font-family: inherit; }
 }
 
 .hf-earn-chain-option {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   width: 100%;
   text-align: left;
   border: 0;
@@ -2529,6 +2531,32 @@ input, select, textarea, button { font-family: inherit; }
   border-radius: var(--hf-radius-xs);
   cursor: pointer;
   transition: background var(--hf-transition);
+}
+
+.hf-filter-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.hf-filter-icon-stack {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.hf-filter-icon-stacked {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--hf-bg-card);
+  margin-right: -5px;
+  position: relative;
+}
+
+.hf-filter-icon-stacked:last-child {
+  margin-right: 2px;
 }
 
 .hf-earn-chain-option:hover {
@@ -2794,12 +2822,30 @@ input, select, textarea, button { font-family: inherit; }
   flex: 1;
 }
 
+.hf-earn-vault-card-icon-wrap {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
 .hf-earn-vault-card-icon {
   width: 28px;
   height: 28px;
   border-radius: 50%;
   object-fit: cover;
-  flex-shrink: 0;
+}
+
+.hf-earn-vault-card-proto-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--hf-bg-card);
+  object-fit: cover;
+  background: var(--hf-bg-card);
 }
 
 .hf-earn-vault-card-name {

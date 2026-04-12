@@ -19,41 +19,37 @@ import type { PrivyWalletBridge } from './WalletConnector';
 
 /* ─── Constants ── */
 const EARN_CHAINS = [
-  { id: 0, label: 'All Chains' },
-  { id: 1, label: 'Ethereum' },
-  { id: 8453, label: 'Base' },
-  { id: 42161, label: 'Arbitrum' },
-  { id: 10, label: 'Optimism' },
-  { id: 137, label: 'Polygon' },
-  { id: 56, label: 'BNB Chain' },
-
-  { id: 59144, label: 'Linea' },
-  { id: 146, label: 'Sonic' },
+  { id: 0, label: 'All Chains', icon: null, icons: ['/chains/ethereum.svg', '/chains/base.svg', '/chains/arbitrum.svg', '/chains/optimism.svg'] },
+  { id: 1, label: 'Ethereum', icon: '/chains/ethereum.svg' },
+  { id: 8453, label: 'Base', icon: '/chains/base.svg' },
+  { id: 42161, label: 'Arbitrum', icon: '/chains/arbitrum.svg' },
+  { id: 10, label: 'Optimism', icon: '/chains/optimism.svg' },
+  { id: 137, label: 'Polygon', icon: '/chains/polygon.svg' },
+  { id: 56, label: 'BNB Chain', icon: '/chains/bnb.svg' },
+  { id: 59144, label: 'Linea', icon: '/chains/linea.svg' },
+  { id: 146, label: 'Sonic', icon: '/chains/sonic.svg' },
 ];
 
 const EARN_PROTOCOLS = [
-  { value: null, label: 'All Protocols' },
-  { value: 'aave-v3', label: 'Aave V3' },
-  { value: 'morpho-v1', label: 'Morpho' },
-  { value: 'euler-v2', label: 'Euler V2' },
-  { value: 'ethena-usde', label: 'Ethena' },
-  { value: 'fluid', label: 'Fluid' },
-  { value: 'pendle', label: 'Pendle' },
-  { value: 'spark', label: 'Spark' },
-  { value: 'maple', label: 'Maple' },
-  { value: 'kelp', label: 'Kelp' },
+  { value: null, label: 'All Protocols', icon: null, icons: ['/protocols/aave.svg', '/protocols/morpho.svg', '/protocols/euler.svg', '/protocols/pendle.svg'] },
+  { value: 'aave-v3', label: 'Aave V3', icon: '/protocols/aave.svg' },
+  { value: 'morpho-v1', label: 'Morpho', icon: '/protocols/morpho.svg' },
+  { value: 'euler-v2', label: 'Euler V2', icon: '/protocols/euler.svg' },
+  { value: 'ethena-usde', label: 'Ethena', icon: '/protocols/ethena.svg' },
+  { value: 'pendle', label: 'Pendle', icon: '/protocols/pendle.svg' },
+  { value: 'maple', label: 'Maple', icon: '/protocols/maple.jpeg' },
 ];
 
 const ETH_FAMILY = ['ETH', 'WETH', 'STETH', 'WSTETH'];
 const BTC_FAMILY = ['BTC', 'WBTC', 'CBBTC', 'TBTC', 'BTCB'];
 
 const EARN_ASSETS = [
-  { value: null, label: 'All Assets' },
-  { value: 'USDC', label: 'USDC' },
-  { value: 'USDT', label: 'USDT' },
-  { value: 'ETH_FAMILY', label: 'ETH' },
-  { value: 'BTC_FAMILY', label: 'BTC' },
-  { value: 'DAI', label: 'DAI' },
+  { value: null, label: 'All Assets', icon: null, icons: ['/token-icons/usdc.svg', '/token-icons/eth.svg', '/token-icons/wbtc.png', '/token-icons/dai.svg'] },
+  { value: 'USDC', label: 'USDC', icon: '/token-icons/usdc.svg' },
+  { value: 'USDT', label: 'USDT', icon: '/token-icons/usdt.svg' },
+  { value: 'ETH_FAMILY', label: 'ETH', icon: '/token-icons/eth.svg' },
+  { value: 'BTC_FAMILY', label: 'BTC', icon: '/token-icons/wbtc.png' },
+  { value: 'DAI', label: 'DAI', icon: '/token-icons/dai.svg' },
 ];
 
 const CHAIN_EXPLORER: Record<number, string> = {
@@ -82,6 +78,14 @@ interface EarnViewProps {
   onBack: () => void;
   /** Switch to swap tab with destination prefilled (chain + token). Undefined = not wired up. */
   onGetMore?: (toChain: ChainKey, toTokenSymbol: string) => void;
+}
+
+const PROTOCOL_ICON: Record<string, string> = Object.fromEntries(
+  EARN_PROTOCOLS.filter((p) => p.value && p.icon).map((p) => [p.value, p.icon!])
+);
+
+function getProtocolIcon(protocolName: string): string | null {
+  return PROTOCOL_ICON[protocolName] ?? null;
 }
 
 /** Match vault/token name to a local icon based on keywords */
@@ -142,9 +146,19 @@ function formatDate(iso: string): string {
 }
 
 /* ─── Reusable dropdown ── */
+function FilterIconStack({ icons }: { icons: string[] }) {
+  return (
+    <span className="hf-filter-icon-stack">
+      {icons.map((src, i) => (
+        <img key={src} src={src} alt="" className="hf-filter-icon-stacked" style={{ zIndex: icons.length - i }} />
+      ))}
+    </span>
+  );
+}
+
 function FilterDropdown({ label, options, value, onChange }: {
   label: string;
-  options: Array<{ value: string | null; label: string }>;
+  options: Array<{ value: string | null; label: string; icon?: string | null; icons?: string[] }>;
   value: string | null;
   onChange: (v: string | null) => void;
 }) {
@@ -160,11 +174,19 @@ function FilterDropdown({ label, options, value, onChange }: {
     return () => document.removeEventListener('mousedown', handle);
   }, [open]);
 
-  const selectedLabel = options.find((o) => o.value === value)?.label ?? label;
+  const selected = options.find((o) => o.value === value);
+  const selectedLabel = selected?.label ?? label;
+
+  const renderIcon = (o: { icon?: string | null; icons?: string[] }) => {
+    if (o.icons) return <FilterIconStack icons={o.icons} />;
+    if (o.icon) return <img src={o.icon} alt="" className="hf-filter-icon" />;
+    return null;
+  };
 
   return (
     <div className="hf-earn-chain-filter" ref={ref}>
       <button className="hf-chain-btn" onClick={() => setOpen(!open)}>
+        {selected && renderIcon(selected)}
         {selectedLabel}
         <ChevronDown size={11} />
       </button>
@@ -176,6 +198,7 @@ function FilterDropdown({ label, options, value, onChange }: {
               className={`hf-earn-chain-option ${value === o.value ? 'hf-earn-chain-option-active' : ''}`}
               onClick={() => { onChange(o.value); setOpen(false); }}
             >
+              {renderIcon(o)}
               {o.label}
             </button>
           ))}
@@ -349,9 +372,9 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack, onGetMore 
     try { return parseUnits(inputAmount, decimals) > vaultTokenBalance; } catch { return false; }
   })();
 
-  const chainOptions = EARN_CHAINS.map((c) => ({ value: c.id === 0 ? null : String(c.id), label: c.label }));
-  const protocolOptions = EARN_PROTOCOLS.map((p) => ({ value: p.value, label: p.label }));
-  const assetOptions = EARN_ASSETS.map((a) => ({ value: a.value, label: a.label }));
+  const chainOptions = EARN_CHAINS.map((c) => ({ value: c.id === 0 ? null : String(c.id), label: c.label, icon: c.icon, icons: 'icons' in c ? c.icons : undefined }));
+  const protocolOptions = EARN_PROTOCOLS.map((p) => ({ value: p.value, label: p.label, icon: p.icon, icons: 'icons' in p ? p.icons : undefined }));
+  const assetOptions = EARN_ASSETS.map((a) => ({ value: a.value, label: a.label, icon: a.icon, icons: 'icons' in a ? a.icons : undefined }));
 
   return (
     <motion.div
@@ -656,7 +679,7 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack, onGetMore 
               className={`hf-earn-filter-btn ${filters.stablecoinOnly ? 'hf-earn-filter-btn-active' : ''}`}
               onClick={() => updateFilters({ stablecoinOnly: !filters.stablecoinOnly })}
             >
-              <Shield size={12} /> Stablecoins
+              <FilterIconStack icons={['/token-icons/usdc.svg', '/token-icons/usdt.svg', '/token-icons/dai.svg']} /> Stablecoins
             </button>
             <button
               className={`hf-earn-filter-btn ${filters.sortBy === 'apy' ? 'hf-earn-filter-btn-active' : ''}`}
@@ -664,7 +687,7 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack, onGetMore 
             >
               <TrendingUp size={12} /> {filters.sortBy === 'apy' ? 'Top APY' : 'Top TVL'}
             </button>
-            {(filters.chainId || filters.protocol || filters.asset || filters.stablecoinOnly || filters.search) && (
+            {(filters.chainId || filters.protocol || filters.asset || filters.stablecoinOnly || filters.search || filters.sortBy !== 'apy') && (
               <button
                 className="hf-earn-clear-filters"
                 onClick={() => updateFilters({ chainId: null, protocol: null, asset: null, stablecoinOnly: false, search: '', sortBy: 'apy' })}
@@ -715,6 +738,7 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack, onGetMore 
 
               const renderVault = (vault: EarnVault) => {
                 const icon = getTokenIcon(vault.underlyingTokens?.[0]?.symbol ?? vault.name);
+                const protoIcon = getProtocolIcon(vault.protocol.name);
                 const baseApy = vault.analytics.apy.base;
                 const rewardApy = vault.analytics.apy.reward;
                 const apy7d = vault.analytics.apy7d;
@@ -729,7 +753,12 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack, onGetMore 
                   {/* Row 1: Identity */}
                   <div className="hf-earn-vault-card-top">
                     <div className="hf-earn-vault-card-identity">
-                      {icon && <img src={icon} alt="" className="hf-earn-vault-card-icon" />}
+                      {icon && (
+                        <span className="hf-earn-vault-card-icon-wrap">
+                          <img src={icon} alt="" className="hf-earn-vault-card-icon" />
+                          {protoIcon && <img src={protoIcon} alt="" className="hf-earn-vault-card-proto-badge" />}
+                        </span>
+                      )}
                       <div>
                         <span className="hf-earn-vault-card-name">{vault.name}</span>
                         <span className="hf-earn-vault-card-protocol">{protocolLabel(vault.protocol.name)}</span>
