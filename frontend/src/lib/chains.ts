@@ -107,13 +107,6 @@ const BASE_TOKENS: TokenOption[] = [
     address: '0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b',
     decimals: 18,
     logoURI: '/token-icons/virtual.png'
-  },
-  {
-    symbol: 'aUSDC',
-    name: 'Aave v3 USDC',
-    address: '0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB',
-    decimals: 6,
-    logoURI: '/token-icons/ausdc.png'
   }
 ];
 

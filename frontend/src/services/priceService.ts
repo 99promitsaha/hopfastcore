@@ -24,7 +24,6 @@ const SYMBOL_TO_CG_ID: Record<string, string> = {
   POL:     'polygon-ecosystem-token',
   MON:     'monad',
   VIRTUAL: 'virtual-protocol',
-  aUSDC:   'aave-v3-usdc',
 };
 
 const ALL_SYMBOLS = Object.keys(SYMBOL_TO_CG_ID);
