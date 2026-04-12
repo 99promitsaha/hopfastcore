@@ -1,6 +1,6 @@
-# HopFast — Frontend
+# HopFast / Frontend
 
-The React web app for HopFast. Handles wallet connection, swap quotes, yield vault browsing, transaction tracking, and the agent integration docs. Runs at [hopfast.xyz](https://hopfast.xyz).
+The web app. Handles wallet connection, swap quotes, yield vault browsing, transaction tracking, and the agent docs page. Runs at [hopfast.xyz](https://hopfast.xyz).
 
 ---
 
@@ -42,15 +42,15 @@ If `VITE_PRIVY_APP_ID` is not set, the app falls back to a demo wallet so you ca
 
 ## Views
 
-The app is a single-page application. All views are React state — there is no URL routing.
+Single-page app. All views are React state, no URL routing.
 
 | View | What it does |
 |------|-------------|
-| **Landing** | Entry point. User picks Human mode or Agent mode. |
-| **Swap** | Cross-chain swap interface. Pick tokens, get quotes from multiple providers, see fees and estimated time. |
-| **Earn** | Yield vault browser. Filter by chain, token, or protocol. Deposit into a vault and track your position. |
-| **Agent** | MCP server docs for developers. Setup guides for Claude Desktop, Claude Code, and any HTTP agent. |
-| **Stats** | Protocol-wide analytics. Swap volume, unique users, and earn deposits over 7, 15, or 30 days. |
+| **Landing** | Entry point. Pick Human or Agent mode. |
+| **Swap** | Cross-chain swap interface. Pick tokens, compare quotes, see fees and ETA. |
+| **Earn** | Yield vault browser. Filter by chain, token, or protocol. Deposit and track positions. |
+| **Agent** | MCP server docs. Setup guides for Claude Desktop, Claude Code, and HTTP agents. |
+| **Stats** | Protocol analytics. Swap volume, unique users, earn deposits over 7/15/30 days. |
 
 ---
 
@@ -85,8 +85,7 @@ src/
 │   └── balanceService.ts            On-chain balance fetching
 │
 ├── lib/
-│   ├── chains.ts                    Supported networks and their config
-│   ├── tokens.generated.ts          2800+ ERC-20 tokens across all chains
+│   ├── chains.ts                    Supported networks, tokens, and their config
 │   ├── swap.ts                      Swap utility functions
 │   ├── amount.ts                    Wei and human-readable conversions
 │   └── erc20.ts                     ERC-20 contract helpers
@@ -108,21 +107,21 @@ src/
 | Polygon | 137 |
 | Monad | 143 |
 
-The token list covers 2800+ ERC-20 tokens across all five chains.
+Tokens are defined in `src/lib/chains.ts`. To add a new token, just add an entry there and a price mapping in `priceService.ts`.
 
 ---
 
 ## Wallet connection
 
-Wallet auth uses [Privy](https://privy.io). Set `VITE_PRIVY_APP_ID` in your `.env` to enable it. Without it, a demo wallet kicks in automatically — useful for local development and testing without needing a real wallet connected.
+Wallet auth uses [Privy](https://privy.io). Set `VITE_PRIVY_APP_ID` in your `.env` to enable it. Without it, a demo wallet kicks in so you can still dev and test without a real wallet.
 
-No email, password, or personal data is collected. Identity is purely wallet-address based.
+No email, password, or personal data collected. Identity is wallet-address only.
 
 ---
 
 ## Static files
 
-These live in `public/` and are served directly at the root of the domain.
+These live in `public/` and get served at the root of the domain.
 
 | File | Purpose |
 |------|---------|
@@ -144,7 +143,7 @@ npm run preview  # preview the production build locally
 
 ## Design system
 
-Styles live in `src/index.css`. The app uses CSS custom properties for colours, spacing, shadows, fonts, and transitions. All component styles use plain CSS classes prefixed with `hf-`.
+Styles live in `src/index.css`. CSS custom properties for colours, spacing, shadows, fonts, and transitions. All classes are prefixed with `hf-`.
 
 Core tokens:
 

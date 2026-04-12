@@ -3127,6 +3127,26 @@ input, select, textarea, button { font-family: inherit; }
   padding: 0 0.3rem;
 }
 
+.hf-earn-redo-prefs {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--hf-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+.hf-earn-redo-prefs:hover {
+  color: var(--hf-primary-dark);
+  background: var(--hf-primary-glow);
+}
+
 /* ── Deposit/Withdraw mode toggle ── */
 /* ── Portfolio Summary ── */
 .hf-earn-portfolio-summary {

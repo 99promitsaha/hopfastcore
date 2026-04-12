@@ -602,6 +602,19 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack, onGetMore 
             <span className="hf-earn-subtab-badge">{portfolio.positions.length}</span>
           )}
         </button>
+        {activeWalletAddress && (
+          <button
+            className="hf-earn-redo-prefs"
+            onClick={() => {
+              localStorage.removeItem(onboardingKey(activeWalletAddress));
+              prefsChecked.current = false;
+              setShowOnboarding(true);
+            }}
+            title="Redo your risk preferences"
+          >
+            <RefreshCw size={12} /> Redo preferences
+          </button>
+        )}
       </div>
 
       {/* ══════════ VAULTS TAB ══════════ */}

@@ -13,9 +13,9 @@
 
 ---
 
-HopFast lets you swap tokens across five blockchains and deposit into DeFi yield vaults, all from one place. No account, no sign-up. Connect a wallet and start using it.
+HopFast lets you swap tokens across five blockchains and deposit into DeFi yield vaults, all from one place. No account, no sign-up. Connect your wallet and go.
 
-It also ships with a full MCP server so AI agents like Claude, Codex, or Gemini can do the same things programmatically. One URL, and the agent figures the rest out on its own.
+It also ships with a full MCP server so AI agents (Claude, Codex, Gemini, whatever) can do the same things programmatically. One URL, and the agent figures the rest out on its own.
 
 ---
 
@@ -23,21 +23,21 @@ It also ships with a full MCP server so AI agents like Claude, Codex, or Gemini 
 
 ### Swapping
 
-Pick a token on one chain, pick where you want it to land, and HopFast finds you the best route. It pulls quotes from three different routing providers (LI.FI, Squid Router, and deBridge) and gives you the one with the best output and lowest fee. You sign one transaction and the rest is handled automatically.
+Pick a token on one chain, pick where you want it to end up, and HopFast finds the best route. It pulls quotes from three routing providers (LI.FI, Squid Router, and deBridge) and shows you the one with the best output and lowest fees. You sign one transaction and it handles the rest.
 
-Cross-chain swaps can take anywhere from 30 seconds to a few minutes depending on the chains involved. HopFast polls the bridge status and shows you when funds arrive.
+Cross-chain swaps usually take 30 seconds to a few minutes depending on the chains. HopFast polls the bridge status and shows you when your funds land.
 
 ### Earning
 
-Browse yield vaults from protocols like Aave, Morpho, and Yo Protocol across all supported chains. Each vault shows the current APY, total value locked, and which token it accepts. Once you pick one, HopFast generates the deposit transaction and you sign it. Your position gets saved and tracked so you can always see what you have in where.
+Browse yield vaults from protocols like Aave, Morpho, and Yo Protocol across all supported chains. Each vault shows current APY, TVL, and which token it accepts. Pick one, HopFast generates the deposit transaction, you sign it. Your position gets saved so you can always see what you have and where.
 
 ### Preferences
 
-Set your risk appetite (aggressive or conservative) and experience level once. HopFast uses that to sort and filter vault recommendations the next time you look for yield.
+Set your risk appetite (aggressive or conservative) and experience level once. HopFast uses that to sort and filter vault recommendations next time you look for yield. You can redo this anytime from the Earn tab.
 
 ### Transaction history
 
-Every swap and vault deposit you make through HopFast is saved to your wallet's history. You can see the status of each one, which chains were involved, and link out to the block explorer.
+Every swap and vault deposit you make through HopFast gets saved to your wallet's history. You can see the status, which chains were involved, and link out to the block explorer.
 
 ---
 
@@ -55,7 +55,7 @@ Every swap and vault deposit you make through HopFast is saved to your wallet's 
 
 ## For AI agents
 
-HopFast has a live MCP server that lets any AI agent interact with the app the same way a human would. The agent can get swap quotes, browse yield vaults, check transaction status, and read a wallet's history. All through one endpoint, no API key required.
+HopFast has a live MCP server that lets any AI agent interact with it the same way a human would. Get swap quotes, browse yield vaults, check transaction status, read wallet history. All through one endpoint, no API key needed.
 
 **MCP endpoint:** `https://mcp.hopfast.xyz/mcp`
 
@@ -63,7 +63,7 @@ HopFast has a live MCP server that lets any AI agent interact with the app the s
 
 **Claude Desktop**
 
-Open `~/Library/Application Support/Claude/claude_desktop_config.json` on Mac (or `%APPDATA%\Claude\claude_desktop_config.json` on Windows) and add this:
+Open your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json` on Mac, `%APPDATA%\Claude\claude_desktop_config.json` on Windows) and add:
 
 ```json
 {
@@ -76,7 +76,7 @@ Open `~/Library/Application Support/Claude/claude_desktop_config.json` on Mac (o
 }
 ```
 
-Restart Claude Desktop and you will see the HopFast tools available in the chat.
+Restart Claude Desktop and HopFast tools will show up in your chat.
 
 **Claude Code**
 
@@ -84,11 +84,11 @@ Restart Claude Desktop and you will see the HopFast tools available in the chat.
 claude mcp add --transport http hopfast https://mcp.hopfast.xyz/mcp
 ```
 
-That registers HopFast globally across all your Claude Code sessions. Run `claude mcp list` to confirm it connected.
+That registers HopFast globally. Run `claude mcp list` to confirm it connected.
 
 **Any other HTTP agent**
 
-Every request needs these two headers or you will get a 406:
+Every request needs these two headers or you'll get a 406:
 
 ```
 Content-Type: application/json
@@ -124,14 +124,14 @@ curl -X POST https://mcp.hopfast.xyz/mcp \
 
 ### Workflow prompts
 
-These are pre-written instructions you can inject into an agent's conversation to handle complete DeFi workflows. Instead of figuring out which tools to call and in what order, you invoke a prompt and the agent already knows the full sequence.
+Pre-written instructions you can inject into an agent's conversation to handle full DeFi workflows. Instead of figuring out which tools to call and in what order, invoke a prompt and the agent already knows the sequence.
 
 | Prompt | What it covers |
 |--------|---------------|
-| `cross_chain_swap` | Quote, user confirmation, signing, and status tracking |
-| `find_yield` | Preference setup, vault search, deposit quote, and position recording |
+| `cross_chain_swap` | Quote, confirm, sign, and track status |
+| `find_yield` | Preferences, vault search, deposit quote, save position |
 | `portfolio_review` | Swap history and active earn positions for a wallet |
-| `check_swap_status` | Monitors a bridge until it resolves, with updates along the way |
+| `check_swap_status` | Monitors a bridge until it resolves |
 
 ### Resources
 
@@ -142,14 +142,14 @@ These are pre-written instructions you can inject into an agent's conversation t
 
 ### How wallet signing works
 
-An agent cannot sign a blockchain transaction. Only the user's private key can do that. Here is how the flow works in practice:
+Agents can't sign blockchain transactions. Only the user's wallet can do that. Here's the flow:
 
 1. Agent calls `get_swap_quote` and gets back a `transactionRequest` payload
-2. Agent shows the user what they are about to do: destination amount, fees, estimated time
-3. User signs the transaction in their wallet (Privy or MetaMask). The agent never sees the private key
-4. Wallet returns a `txHash`. Agent calls `record_transaction` and starts polling `get_transaction_status` until the bridge finishes
+2. Agent shows the user what they're about to do: destination amount, fees, estimated time
+3. User signs in their wallet (MetaMask, Privy, etc.). The agent never sees the private key
+4. Wallet returns a `txHash`. Agent calls `record_transaction` and polls `get_transaction_status` until the bridge finishes
 
-Agents plan and track. Users sign and approve. Nothing moves without an explicit wallet confirmation.
+Agents plan and track. Users sign and approve. Nothing moves without a wallet confirmation.
 
 ---
 
@@ -289,7 +289,7 @@ Base URL: `https://api.hopfast.xyz/api`
 
 ## Privacy
 
-No email, phone number, or personal data is collected. The only thing stored is your wallet address (which is already public on the blockchain), your swap records, and your earn positions. You can remove your earn positions at any time. Blockchain transactions themselves are permanent and visible to anyone.
+No email, phone number, or personal data collected. The only things stored are your wallet address (already public on-chain), swap records, and earn positions. Blockchain transactions are permanent and visible to anyone.
 
 ---
 

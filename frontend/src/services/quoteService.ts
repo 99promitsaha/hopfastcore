@@ -143,13 +143,13 @@ export async function getSwapQuote(
 
   try {
     const data = (await fetchQuoteFromBackend(payload, provider)) as {
-      provider?: 'lifi' | 'relay' | 'debridge' | 'squid';
+      provider?: 'lifi' | 'debridge' | 'squid';
       fallbackUsed?: boolean;
       fallbackFrom?: string;
       warnings?: string[];
       quotes?: Array<{
         id: string;
-        provider?: 'lifi' | 'relay' | 'debridge' | 'squid';
+        provider?: 'lifi' | 'debridge' | 'squid';
         routeSteps?: Array<{ type?: string }>;
         feeUsd?: string;
         feePercent?: string;

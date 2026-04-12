@@ -1,6 +1,6 @@
-# HopFast — Backend
+# HopFast / Backend
 
-The REST API for HopFast. Handles swap quotes, transaction tracking, yield vault data, earn positions, wallet registration, and protocol analytics. Runs at [api.hopfast.xyz](https://api.hopfast.xyz/api/health).
+The REST API. Handles swap quotes, transaction tracking, yield vault data, earn positions, wallet registration, and protocol analytics. Runs at [api.hopfast.xyz](https://api.hopfast.xyz/api/health).
 
 ---
 
@@ -26,7 +26,7 @@ npm run dev
 # http://localhost:8080
 ```
 
-MongoDB needs to be running before you start the server. You can use a local instance or point `MONGODB_URI` at a MongoDB Atlas cluster.
+MongoDB needs to be running before you start. Either a local instance or point `MONGODB_URI` at an Atlas cluster.
 
 ---
 
@@ -58,7 +58,7 @@ DEBRIDGE_ACCESS_TOKEN=
 DEBRIDGE_REFERRAL_CODE=
 ```
 
-All provider API keys are optional. The server will still function without them, though you may hit rate limits on the free tiers faster.
+All provider API keys are optional. Server works without them but you'll hit free tier rate limits faster.
 
 ---
 
@@ -72,7 +72,7 @@ Base URL: `http://localhost:8080/api`
 GET /api/health
 ```
 
-Returns the service name and database connection status. Good first call to confirm everything is wired up.
+Returns service name and database connection status. Good first call to make sure everything's wired up.
 
 ```json
 { "ok": true, "service": "hopfast-api", "db": "connected" }
@@ -86,7 +86,7 @@ Returns the service name and database connection status. Good first call to conf
 POST /api/wallets
 ```
 
-Registers a wallet or updates its last-seen timestamp. Safe to call on every session start — it's an upsert.
+Registers a wallet or updates its last-seen timestamp. Safe to call on every session start, it's an upsert.
 
 **Body**
 ```json
@@ -101,7 +101,7 @@ Registers a wallet or updates its last-seen timestamp. Safe to call on every ses
 POST /api/quotes?provider=lifi|squid|debridge
 ```
 
-Fetches a cross-chain swap quote from the specified provider. Returns the destination amount, fees, estimated duration, and a transaction request payload ready for the user to sign.
+Fetches a cross-chain swap quote from the specified provider. Returns destination amount, fees, ETA, and a transaction request payload ready to sign.
 
 **Body**
 ```json
@@ -126,7 +126,7 @@ POST /api/swaps          Create a swap record
 GET  /api/swaps          Get swap records for a wallet (?userAddress=&limit=)
 ```
 
-Used to persist swap records in the database. Separate from transaction history — swap records are created at quote time, transactions are created after the user signs.
+Persists swap records. Separate from transaction history: swap records are created at quote time, transactions are created after the user signs.
 
 ---
 
@@ -137,7 +137,7 @@ POST /api/transactions   Record a submitted transaction
 GET  /api/transactions   Get transaction history (?userAddress=&limit=)
 ```
 
-Transaction records are created after a swap is signed and broadcast. These show up in the user's history.
+Created after a swap is signed and broadcast. Shows up in the user's history.
 
 ---
 
@@ -151,7 +151,7 @@ Polls the bridge provider for the current status of a cross-chain transaction.
 
 Possible statuses: `submitted`, `confirming`, `bridging`, `completed`, `failed`
 
-Also returns `receivingTxHash` (the destination chain tx) and `explorerLink` once the bridge completes.
+Also returns `receivingTxHash` and `explorerLink` once the bridge completes.
 
 ---
 
@@ -169,7 +169,7 @@ GET  /api/earn/preferences/:address      Get yield preferences for a wallet
 POST /api/earn/preferences               Save yield preferences
 ```
 
-Vault data is proxied from LI.FI Earn. Positions and preferences are stored in MongoDB.
+Vault data proxied from LI.FI Earn. Positions and preferences stored in MongoDB.
 
 **Vault query params:** `chainId`, `asset`, `protocol`, `minTvlUsd`, `sortBy` (apy|tvl), `limit`, `cursor`
 
@@ -183,7 +183,7 @@ Rate limited to 60 requests per minute per IP for the earn quote endpoint in pro
 GET /api/stats?period=7d|15d|30d
 ```
 
-Returns protocol-wide analytics for the given time window.
+Protocol-wide analytics for the given time window.
 
 ```json
 {
@@ -202,7 +202,7 @@ Returns protocol-wide analytics for the given time window.
 ## Database models
 
 ### Wallet
-Stores wallet addresses and last-seen timestamps. Created on first visit, updated on each session.
+Wallet addresses and last-seen timestamps. Created on first visit, updated each session.
 
 | Field | Type | Notes |
 |-------|------|-------|
@@ -210,7 +210,7 @@ Stores wallet addresses and last-seen timestamps. Created on first visit, update
 | `lastSeenAt` | Date | Updated on each register call |
 
 ### SwapRecord
-Created when a quote is accepted by the user (before signing).
+Created when a quote is accepted (before signing).
 
 | Field | Type | Notes |
 |-------|------|-------|
@@ -227,7 +227,7 @@ Created when a quote is accepted by the user (before signing).
 | `status` | String | Default: quote-created |
 
 ### TransactionHistory
-Created after a transaction is signed and broadcast.
+Created after a tx is signed and broadcast.
 
 | Field | Type | Notes |
 |-------|------|-------|
@@ -260,7 +260,7 @@ Tracks vault deposits per wallet.
 | `action` | String | deposit or withdraw |
 
 ### EarnPreference
-Stores a user's yield preferences for personalised recommendations.
+Yield preferences for personalised vault recommendations.
 
 | Field | Type | Notes |
 |-------|------|-------|
