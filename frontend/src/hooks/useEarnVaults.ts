@@ -161,7 +161,7 @@ export function useEarnVaults() {
 
   // TVL sort for client-side filtered results so there's a natural mix
   if (stablecoinFilter || familySymbols) {
-    filteredVaults.sort((a, b) => (b.analytics?.tvlUsd ?? 0) - (a.analytics?.tvlUsd ?? 0));
+    filteredVaults.sort((a, b) => parseFloat(b.analytics?.tvl?.usd ?? '0') - parseFloat(a.analytics?.tvl?.usd ?? '0'));
   }
 
   return {

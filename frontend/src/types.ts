@@ -102,7 +102,7 @@ export type EarnSortBy = 'apy' | 'tvl';
 
 export interface EarnPreference {
   riskAppetite: 'high' | 'safe';
-  preferredAsset: 'USDC' | 'USDT' | 'ETH' | 'WBTC' | 'any';
+  preferredAsset: 'USDC' | 'USDT' | 'ETH' | 'WBTC' | 'DAI' | 'stablecoins' | 'ETH_FAMILY' | 'BTC_FAMILY' | 'any';
   experienceLevel: 'beginner' | 'intermediate' | 'advanced';
 }
 
