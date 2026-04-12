@@ -26,7 +26,7 @@ const EARN_CHAINS = [
   { id: 10, label: 'Optimism' },
   { id: 137, label: 'Polygon' },
   { id: 56, label: 'BNB Chain' },
-  { id: 534352, label: 'Scroll' },
+
   { id: 59144, label: 'Linea' },
   { id: 146, label: 'Sonic' },
 ];
@@ -63,14 +63,14 @@ const CHAIN_EXPLORER: Record<number, string> = {
   10: 'https://optimistic.etherscan.io/tx/',
   137: 'https://polygonscan.com/tx/',
   56: 'https://bscscan.com/tx/',
-  534352: 'https://scrollscan.com/tx/',
+
   59144: 'https://lineascan.build/tx/',
   146: 'https://sonicscan.org/tx/',
 };
 
 const CHAIN_NAME: Record<number, string> = {
   1: 'Ethereum', 8453: 'Base', 42161: 'Arbitrum', 10: 'Optimism',
-  137: 'Polygon', 56: 'BNB Chain', 534352: 'Scroll', 59144: 'Linea', 146: 'Sonic',
+  137: 'Polygon', 56: 'BNB Chain', 59144: 'Linea', 146: 'Sonic',
 };
 
 type EarnSubTab = 'vaults' | 'positions';
@@ -222,6 +222,7 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack, onGetMore 
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [apyTip, setApyTip] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showMoreVaults, setShowMoreVaults] = useState(false);
   const prefsChecked = useRef(false);
 
   const [vaultTokenBalance, setVaultTokenBalance] = useState<bigint | null>(null);
@@ -708,52 +709,92 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack, onGetMore 
                 <Wallet size={32} />
                 <p>No vaults found matching your filters.</p>
               </div>
-            ) : (
+            ) : (() => {
+              const featured = vaults.filter((v) => getTokenIcon(v.underlyingTokens?.[0]?.symbol ?? v.name));
+              const more = vaults.filter((v) => !getTokenIcon(v.underlyingTokens?.[0]?.symbol ?? v.name));
+
+              const renderVault = (vault: EarnVault) => {
+                const icon = getTokenIcon(vault.underlyingTokens?.[0]?.symbol ?? vault.name);
+                const baseApy = vault.analytics.apy.base;
+                const rewardApy = vault.analytics.apy.reward;
+                const apy7d = vault.analytics.apy7d;
+                const isStable = vault.tags?.includes('stablecoin');
+
+                return (
+                <button
+                  key={vault.slug}
+                  className="hf-earn-vault-card"
+                  onClick={() => openVaultModal(vault)}
+                >
+                  {/* Row 1: Identity */}
+                  <div className="hf-earn-vault-card-top">
+                    <div className="hf-earn-vault-card-identity">
+                      {icon && <img src={icon} alt="" className="hf-earn-vault-card-icon" />}
+                      <div>
+                        <span className="hf-earn-vault-card-name">{vault.name}</span>
+                        <span className="hf-earn-vault-card-protocol">{protocolLabel(vault.protocol.name)}</span>
+                      </div>
+                    </div>
+                    <div className="hf-earn-vault-card-tags">
+                      {isStable && <span className="hf-earn-vault-tag hf-earn-vault-tag-stable">Stablecoin</span>}
+                      <span className="hf-earn-vault-tag">{vault.network}</span>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Metrics */}
+                  <div className="hf-earn-vault-card-metrics">
+                    <div className="hf-earn-vault-card-stat hf-earn-vault-card-stat-apy">
+                      <span className="hf-earn-vault-card-stat-value">{formatApy(vault.analytics.apy.total)}</span>
+                      <span className="hf-earn-vault-card-stat-label">APY</span>
+                    </div>
+                    <div className="hf-earn-vault-card-stat">
+                      <span className="hf-earn-vault-card-stat-value">{formatTvl(vault.analytics.tvl.usd)}</span>
+                      <span className="hf-earn-vault-card-stat-label">TVL</span>
+                    </div>
+                    {baseApy != null && (
+                      <div className="hf-earn-vault-card-stat">
+                        <span className="hf-earn-vault-card-stat-value">{formatApy(baseApy)}</span>
+                        <span className="hf-earn-vault-card-stat-label">Base</span>
+                      </div>
+                    )}
+                    {rewardApy != null && rewardApy > 0 && (
+                      <div className="hf-earn-vault-card-stat">
+                        <span className="hf-earn-vault-card-stat-value hf-earn-vault-card-stat-reward">+{formatApy(rewardApy)}</span>
+                        <span className="hf-earn-vault-card-stat-label">Reward</span>
+                      </div>
+                    )}
+                    {apy7d != null && (
+                      <div className="hf-earn-vault-card-stat">
+                        <span className="hf-earn-vault-card-stat-value">{formatApy(apy7d)}</span>
+                        <span className="hf-earn-vault-card-stat-label">7d Avg</span>
+                      </div>
+                    )}
+                    <div className="hf-earn-vault-card-tokens">
+                      {vault.underlyingTokens.map((t) => (
+                        <span key={t.address} className="hf-earn-token-badge">{t.symbol}</span>
+                      ))}
+                    </div>
+                  </div>
+                </button>
+                );
+              };
+
+              return (
               <>
-                {[...vaults].sort((a, b) => {
-                  const aHas = getTokenIcon(a.underlyingTokens?.[0]?.symbol ?? a.name) ? 1 : 0;
-                  const bHas = getTokenIcon(b.underlyingTokens?.[0]?.symbol ?? b.name) ? 1 : 0;
-                  return bHas - aHas;
-                }).map((vault) => {
-                  const hasIcon = !!getTokenIcon(vault.underlyingTokens?.[0]?.symbol ?? vault.name);
-                  return (
-                  <button
-                    key={vault.slug}
-                    className={`hf-earn-vault-row${hasIcon ? '' : ' hf-earn-vault-noicon'}`}
-                    onClick={() => openVaultModal(vault)}
-                  >
-                    <div className="hf-earn-vault-main">
-                      {(() => { const icon = getTokenIcon(vault.underlyingTokens?.[0]?.symbol ?? vault.name); return icon ? <img src={icon} alt="" className="hf-earn-vault-icon" /> : null; })()}
-                      <div className="hf-earn-vault-name-wrap">
-                        <span className="hf-earn-vault-name">{vault.name}</span>
-                        <span className="hf-earn-vault-protocol">
-                          {protocolLabel(vault.protocol.name)}
-                        </span>
-                      </div>
-                      <div className="hf-earn-vault-tokens">
-                        {vault.underlyingTokens.map((t) => (
-                          <span key={t.address} className="hf-earn-token-badge">
-                            {t.symbol}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="hf-earn-vault-metrics">
-                      <div className="hf-earn-vault-apy">
-                        <span className="hf-earn-vault-apy-value">{formatApy(vault.analytics.apy.total)}</span>
-                        <span className="hf-earn-vault-apy-label">APY</span>
-                      </div>
-                      <div className="hf-earn-vault-tvl">
-                        <span className="hf-earn-vault-tvl-value">{formatTvl(vault.analytics.tvl.usd)}</span>
-                        <span className="hf-earn-vault-tvl-label">TVL</span>
-                      </div>
-                      <div className="hf-earn-vault-chain">
-                        {vault.network}
-                      </div>
-                    </div>
-                  </button>
-                  );
-                })}
+                {featured.map(renderVault)}
+
+                {more.length > 0 && (
+                  <>
+                    <button
+                      className="hf-earn-more-toggle"
+                      onClick={() => setShowMoreVaults((p) => !p)}
+                    >
+                      <ChevronDown size={13} className={showMoreVaults ? 'hf-earn-more-chevron-open' : ''} />
+                      {showMoreVaults ? 'Hide' : 'More Vaults'} ({more.length})
+                    </button>
+                    {showMoreVaults && more.map(renderVault)}
+                  </>
+                )}
 
                 {hasMore && (
                   <button className="hf-earn-load-more" onClick={loadMore} disabled={loading}>
@@ -761,7 +802,8 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack, onGetMore 
                   </button>
                 )}
               </>
-            )}
+              );
+            })()}
           </div>
         </>
       )}

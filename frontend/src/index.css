@@ -2757,6 +2757,171 @@ input, select, textarea, button { font-family: inherit; }
   text-align: right;
 }
 
+/* ── Vault Card (new two-row layout) ── */
+.hf-earn-vault-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--hf-bg-card);
+  border: 1px solid var(--hf-border);
+  border-radius: var(--hf-radius-sm);
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: all var(--hf-transition);
+  text-align: left;
+  width: 100%;
+  gap: 0;
+}
+
+.hf-earn-vault-card:hover {
+  border-color: var(--hf-border-active);
+  box-shadow: 0 2px 12px var(--hf-primary-glow);
+  transform: translateY(-1px);
+}
+
+.hf-earn-vault-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 0.6rem;
+}
+
+.hf-earn-vault-card-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.hf-earn-vault-card-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.hf-earn-vault-card-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--hf-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--hf-font-headline);
+}
+
+.hf-earn-vault-card-protocol {
+  font-size: 0.66rem;
+  color: var(--hf-text-muted);
+  font-weight: 500;
+  margin-left: 0.15rem;
+}
+
+.hf-earn-vault-card-tags {
+  display: flex;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.hf-earn-vault-tag {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--hf-bg-elevated);
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--hf-text-secondary);
+  text-transform: capitalize;
+  letter-spacing: 0.02em;
+}
+
+.hf-earn-vault-tag-stable {
+  background: rgba(52, 211, 153, 0.12);
+  color: var(--hf-tertiary);
+}
+
+.hf-earn-vault-card-metrics {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--hf-border);
+  flex-wrap: wrap;
+}
+
+.hf-earn-vault-card-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.hf-earn-vault-card-stat-apy {
+  min-width: 52px;
+}
+
+.hf-earn-vault-card-stat-value {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--hf-text-primary);
+  font-family: var(--hf-mono);
+  line-height: 1.2;
+}
+
+.hf-earn-vault-card-stat-apy .hf-earn-vault-card-stat-value {
+  font-size: 0.92rem;
+  color: var(--hf-tertiary);
+}
+
+.hf-earn-vault-card-stat-reward {
+  color: #60a5fa !important;
+}
+
+.hf-earn-vault-card-stat-label {
+  font-size: 0.56rem;
+  color: var(--hf-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.hf-earn-vault-card-tokens {
+  display: flex;
+  gap: 0.3rem;
+  margin-left: auto;
+}
+
+.hf-earn-vault-card-tokens .hf-earn-token-badge {
+  font-size: 0.58rem;
+}
+
+.hf-earn-more-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.55rem;
+  border: none;
+  border-top: 1px solid var(--hf-border);
+  background: transparent;
+  color: var(--hf-text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.hf-earn-more-toggle:hover {
+  color: var(--hf-text-primary);
+}
+.hf-earn-more-toggle svg {
+  transition: transform 0.2s;
+}
+.hf-earn-more-chevron-open {
+  transform: rotate(180deg);
+}
+
 .hf-earn-load-more {
   display: flex;
   align-items: center;

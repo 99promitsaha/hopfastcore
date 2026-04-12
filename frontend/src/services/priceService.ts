@@ -13,6 +13,7 @@ const CMC_API_KEY = (import.meta.env.VITE_CMC_API_KEY ?? '').trim();
 // ── CoinGecko symbol → id mapping ──
 const SYMBOL_TO_CG_ID: Record<string, string> = {
   ETH:     'ethereum',
+  WETH:    'weth',
   BNB:     'binancecoin',
   USDC:    'usd-coin',
   USDT:    'tether',
@@ -23,6 +24,7 @@ const SYMBOL_TO_CG_ID: Record<string, string> = {
   BUSD:    'binance-usd',
   POL:     'polygon-ecosystem-token',
   MON:     'monad',
+  WMON:    'wrapped-monad',
   VIRTUAL: 'virtual-protocol',
 };
 

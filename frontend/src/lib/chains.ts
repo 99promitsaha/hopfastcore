@@ -56,6 +56,13 @@ const ETHEREUM_TOKENS: TokenOption[] = [
     logoURI: '/token-icons/wbtc.png'
   },
   {
+    symbol: 'WETH',
+    name: 'Wrapped Ether',
+    address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    decimals: 18,
+    logoURI: '/token-icons/weth.png'
+  },
+  {
     symbol: 'BUSD',
     name: 'Binance USD',
     address: '0x4Fabb145d64652a948d72533023f6E7A623C7C53',
@@ -102,6 +109,13 @@ const BASE_TOKENS: TokenOption[] = [
     logoURI: '/token-icons/cbbtc.png'
   },
   {
+    symbol: 'WETH',
+    name: 'Wrapped Ether',
+    address: '0x4200000000000000000000000000000000000006',
+    decimals: 18,
+    logoURI: '/token-icons/weth.png'
+  },
+  {
     symbol: 'VIRTUAL',
     name: 'Virtuals Protocol',
     address: '0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b',
@@ -141,6 +155,13 @@ const BSC_TOKENS: TokenOption[] = [
     logoURI: '/token-icons/eth.svg'
   },
   {
+    symbol: 'WETH',
+    name: 'Wrapped Ether',
+    address: '0x4DB5a66E937A9F4473fA95b1cAF1d1E1D62E29EA',
+    decimals: 18,
+    logoURI: '/token-icons/weth.png'
+  },
+  {
     symbol: 'BTCB',
     name: 'Binance-Peg BTCB Token',
     address: '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c',
@@ -163,7 +184,7 @@ const POLYGON_TOKENS: TokenOption[] = [
     name: 'Wrapped Ether',
     address: '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619',
     decimals: 18,
-    logoURI: '/token-icons/eth.svg'
+    logoURI: '/token-icons/weth.png'
   },
   {
     symbol: 'USDC',
@@ -189,6 +210,20 @@ const MONAD_TOKENS: TokenOption[] = [
     address: NATIVE_TOKEN_ADDRESS,
     decimals: 18,
     logoURI: '/token-icons/mon.png'
+  },
+  {
+    symbol: 'WMON',
+    name: 'Wrapped Monad',
+    address: '0x3bd359c1119da7da1d913d1c4d2b7c461115433a',
+    decimals: 18,
+    logoURI: '/token-icons/mon.png'
+  },
+  {
+    symbol: 'WETH',
+    name: 'Wrapped Ether',
+    address: '0xEE8c0E9f1BFFb4Eb878d8f15f368A02a35481242',
+    decimals: 18,
+    logoURI: '/token-icons/weth.png'
   },
   {
     symbol: 'WBTC',
