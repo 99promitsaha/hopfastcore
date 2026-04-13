@@ -876,9 +876,10 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack, onGetMore 
               <div className="hf-earn-disclaimer">
                 <Info size={14} />
                 <span>
-                  On-chain position tracking and direct withdrawals from HopFast are coming soon.
+                  Live on-chain position tracking and direct withdrawals from HopFast are coming soon.
                   For now, only deposits made through HopFast are shown here and balances may not
-                  update in real time if you withdraw elsewhere. A fix on LI.FI's side is in progress.
+                  update in real time if you withdraw elsewhere. We are waiting on a fix from LI.FI's
+                  side, and once that lands it will take us 3-4 days to test and deploy live tracking.
                   Use the provider link to manage your position directly. Thanks for bearing with us!
                 </span>
               </div>
