@@ -2,8 +2,8 @@
 
 > HopFast is a DeFi aggregator for cross-chain token swaps and yield farming.
 > Users and AI agents can swap tokens across Ethereum, Base, BNB Chain, Polygon,
-> and Monad — and deposit into yield vaults from protocols like Aave, Compound,
-> and Morpho. No account required. Identity is wallet-based (EVM addresses).
+> and Monad — and deposit into yield vaults from protocols like Aave, Morpho,
+> Euler, and more. No account required. Identity is wallet-based (EVM addresses).
 
 ## What HopFast Does
 

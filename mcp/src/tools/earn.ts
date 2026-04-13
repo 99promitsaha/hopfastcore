@@ -40,7 +40,7 @@ Sort by "apy" to find highest yields, or "tvl" for most established vaults.`,
       protocol: z
         .string()
         .optional()
-        .describe('Filter by protocol name (e.g. "Aave", "Compound", "Yearn").'),
+        .describe('Filter by protocol name (e.g. "Aave", "Morpho", "Euler").'),
       minTvlUsd: z
         .number()
         .optional()
@@ -191,7 +191,7 @@ is confirmed on-chain.`,
       protocolName: z
         .string()
         .optional()
-        .describe('Protocol name (e.g. "Aave", "Compound").'),
+        .describe('Protocol name (e.g. "Aave", "Morpho").'),
       tokenSymbol: z
         .string()
         .optional()
