@@ -98,7 +98,8 @@ function getTokenIcon(symbol: string): string | null {
   if (s === 'WETH' || s === 'STETH') return '/token-icons/weth.png';
   if (s === 'ETH') return '/token-icons/eth.svg';
   if (s === 'CBBTC') return '/token-icons/cbbtc.png';
-  if (s === 'WBTC' || s === 'BTC' || s === 'TBTC') return '/token-icons/wbtc.png';
+  if (s === 'TBTC') return '/token-icons/tbtc.svg';
+  if (s === 'WBTC' || s === 'BTC') return '/token-icons/wbtc.png';
   if (s === 'BTCB') return '/token-icons/btcb.png';
   if (s === 'BNB' || s === 'WBNB') return '/token-icons/bnb.svg';
   if (s === 'POL' || s === 'MATIC' || s === 'WMATIC') return '/token-icons/matic.svg';
@@ -875,9 +876,10 @@ export function EarnView({ walletBridge, activeWalletAddress, onBack, onGetMore 
               <div className="hf-earn-disclaimer">
                 <Info size={14} />
                 <span>
-                  This page is a work in progress. Balances shown are based on recorded deposits
-                  and may not reflect your actual on-chain balance. Use the provider link to manage
-                  or withdraw your position. Not in your wallet anymore? Remove it below.
+                  On-chain position tracking and direct withdrawals from HopFast are coming soon.
+                  For now, only deposits made through HopFast are shown here and balances may not
+                  update in real time if you withdraw elsewhere. A fix on LI.FI's side is in progress.
+                  Use the provider link to manage your position directly. Thanks for bearing with us!
                 </span>
               </div>
 
